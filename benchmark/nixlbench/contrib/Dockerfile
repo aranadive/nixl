@@ -131,4 +131,4 @@ RUN rm -rf build && \
     uv run meson setup build -Dnixl_path=/usr/local/nixl/ && \
     cd build && ninja
 ENV PATH=/workspace/nixlbench/build:$PATH
-WORKDIR /workspace/nixl/benchmark/kvbench
+WORKDIR /workspace/nixlbench/build
