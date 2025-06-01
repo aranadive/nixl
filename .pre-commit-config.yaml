@@ -45,10 +45,11 @@ repos:
   #      types_or: [c, c++, cuda, proto, textproto, java]
   #      args: ["-fallback-style=none", "-style=file", "-i"]
   #      files: \.(cpp|h|cc|c)$
-  - repo: https://github.com/barisione/clang-format-hooks
+  - repo: https://github.com/aranadive/clang-format-hooks
+    rev: fcd35e1bbb0d832265797caf6ec11f1ebf0591b8
     hooks:
       - id: apply-format
-        args: ["-i"]
+        args: ["-i", "HEAD~1"]
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.4
