@@ -93,7 +93,7 @@ class nixlBackendEngine {
 
         // Register and deregister local memory
         virtual nixl_status_t
-        registerMem (const nixlBlobDesc &mem, const nixl_mem_t &nixl_mem, nixlBackendMD* &out) = 0;
+        registerMem (const nixlBlobDesc &mem, const nixl_mem_t &nixl_mem, nixlBackendMD *&out) = 0;
         virtual nixl_status_t deregisterMem (nixlBackendMD* meta) = 0;
 
         // Make connection to a remote node identified by the name into loaded conn infos
