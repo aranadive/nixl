@@ -38,6 +38,8 @@ repos:
         args: ["--max-line-length=88", "--select=C,E,F,W,B,B950", "--extend-ignore=E203,E501,W503"]
         types_or: [python, cython]
 
+  # TODO: Once all files are modified by clang, we can revert to this clang pre-commit
+  # as it should no longer format the entire file
   #- repo: https://github.com/pre-commit/mirrors-clang-format
   #  rev: v16.0.5
   #  hooks:
