@@ -51,7 +51,7 @@ from dataclasses import dataclass
 from itertools import cycle
 from os import PathLike
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import numpy as np
 import yaml

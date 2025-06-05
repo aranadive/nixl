@@ -15,7 +15,7 @@
 import logging
 import time
 from itertools import chain
-from typing import Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple, List, Dict, Any
 
 import numpy as np
 import torch
@@ -109,8 +109,8 @@ class CTPerftest:
         self.nixl_agent = nixl_agent(f"{self.my_rank}")
 
         # Workaround for now
-        self.buffers_pool = []
-        self.profile = {}
+        self.buffers_pool: List[NixlBuffer] = []
+        self.profile: Dict[str, Any] = {}
         assert "UCX" in self.nixl_agent.get_plugin_list(), "UCX plugin is not loaded"
 
     def _share_md(self) -> None:
@@ -236,6 +236,7 @@ class CTPerftest:
             return pending
         else:
             self._wait(pending)
+            return []
 
     def _wait(self, handles: list[NixlHandle]):
         # Wait for transfers to complete
