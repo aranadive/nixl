@@ -29,7 +29,7 @@ from commands.nixlbench import NIXLBench
 from models.model_config import ModelConfig
 from models.models import BaseModelArch
 from models.utils import get_batch_size, override_yaml_args
-from torch_rt import torch_rt
+from runtime.torch_rt import torch_rt
 
 from custom_traffic_perftest import CTPerftest
 from sequential_custom_traffic_perftest import (
