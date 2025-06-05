@@ -22,18 +22,20 @@ import os
 from pathlib import Path
 
 import click
-import yaml
 import numpy as np
-
-from commands.args import common_args, cli_args, plan_args, nixl_bench_args
+import yaml
+from commands.args import cli_args, common_args, nixl_bench_args, plan_args
 from commands.nixlbench import NIXLBench
 from models.model_config import ModelConfig
 from models.models import BaseModelArch
 from models.utils import get_batch_size, override_yaml_args
-from benchmark.kvbench.test.custom_traffic_perftest import CTPerftest
-from benchmark.kvbench.test.sequential_custom_traffic_perftest import SequentialCTPerftest
-from benchmark.kvbench.test.traffic_pattern import TrafficPattern
 from runtime.torch_rt import torch_rt
+
+from benchmark.kvbench.test.custom_traffic_perftest import CTPerftest
+from benchmark.kvbench.test.sequential_custom_traffic_perftest import (
+    SequentialCTPerftest,
+)
+from benchmark.kvbench.test.traffic_pattern import TrafficPattern
 
 
 def parse_size(nbytes: str) -> int:

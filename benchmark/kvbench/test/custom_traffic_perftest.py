@@ -19,11 +19,10 @@ from typing import Literal, Optional, Tuple
 
 import numpy as np
 import torch
-from traffic_pattern import TrafficPattern
+from nixl._api import nixl_agent
 from runtime.torch_rt import torch_rt
 from tabulate import tabulate
-
-from nixl._api import nixl_agent
+from traffic_pattern import TrafficPattern
 
 log = logging.getLogger(__name__)
 

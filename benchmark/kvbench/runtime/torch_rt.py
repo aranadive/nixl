@@ -15,9 +15,8 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, final, Dict, Optional
 from enum import Enum
-
+from typing import Any, Dict, List, Optional, Tuple, final
 
 try:
     import torch

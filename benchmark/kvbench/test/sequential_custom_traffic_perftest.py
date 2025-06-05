@@ -18,14 +18,14 @@
 import json
 import logging
 import time
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
+import yaml
 from custom_traffic_perftest import CTPerftest
-from traffic_pattern import TrafficPattern
+from nixl._api import nixl_agent
 from runtime.torch_rt import torch_rt
 from tabulate import tabulate
-from nixl._api import nixl_agent
-import yaml
+from traffic_pattern import TrafficPattern
 
 log = logging.getLogger(__name__)
 
