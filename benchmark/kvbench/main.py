@@ -26,15 +26,12 @@ import numpy as np
 import yaml
 from commands.args import cli_args, common_args, nixl_bench_args, plan_args
 from commands.nixlbench import NIXLBench
+from custom_traffic_perftest import CTPerftest
 from models.model_config import ModelConfig
 from models.models import BaseModelArch
 from models.utils import get_batch_size, override_yaml_args
 from runtime.torch_rt import torch_rt
-
-from custom_traffic_perftest import CTPerftest
-from sequential_custom_traffic_perftest import (
-    SequentialCTPerftest,
-)
+from sequential_custom_traffic_perftest import SequentialCTPerftest
 from traffic_pattern import TrafficPattern
 
 
