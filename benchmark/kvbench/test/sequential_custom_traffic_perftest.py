@@ -38,7 +38,11 @@ class SequentialCTPerftest(CTPerftest):
     """
 
     def __init__(
-        self, traffic_patterns: list[TrafficPattern], n_iters: int = 3, n_isolation_iters=30, warmup_iters=30
+        self,
+        traffic_patterns: list[TrafficPattern],
+        n_iters: int = 3,
+        n_isolation_iters=30,
+        warmup_iters=30,
     ) -> None:
         """Initialize multi-pattern performance test.
 
@@ -120,7 +124,11 @@ class SequentialCTPerftest(CTPerftest):
         isolated_tp_latencies_by_ranks = torch_rt.allgather_obj(isolated_tp_latencies)
         isolated_tp_latencies: list[float | None] = []
         for i in range(len(self.traffic_patterns)):
-            tp_lats = [rank_lats[i] for rank_lats in isolated_tp_latencies_by_ranks if rank_lats[i] > 0 ]
+            tp_lats = [
+                rank_lats[i]
+                for rank_lats in isolated_tp_latencies_by_ranks
+                if rank_lats[i] > 0
+            ]
             if not tp_lats:
                 isolated_tp_latencies.append(None)
             else:
@@ -128,7 +136,7 @@ class SequentialCTPerftest(CTPerftest):
 
         # Workload mode - Measure perf of the matrices while running the full workload
         for iter_ix in range(self.n_iters):
-            for _ in range(self.warmup_iters): # Warmup
+            for _ in range(self.warmup_iters):  # Warmup
                 for tp_ix, handles in enumerate(tp_handles):
                     self._run_tp(handles, blocking=True)
 
@@ -194,7 +202,10 @@ class SequentialCTPerftest(CTPerftest):
                     ]
                     for i, tp in enumerate(self.traffic_patterns)
                 ]
-                print(f"Iteration {iter_ix + 1}/{self.n_iters}\n", tabulate(data, headers=headers, floatfmt=".3f"))
+                print(
+                    f"Iteration {iter_ix + 1}/{self.n_iters}\n",
+                    tabulate(data, headers=headers, floatfmt=".3f"),
+                )
 
             if verify_buffers:
                 for i, tp in enumerate(self.traffic_patterns):

@@ -69,9 +69,7 @@ class NixlBuffer:
         ]
         if size % chunk_size != 0:
             self.bufs.append(
-                torch.full(
-                    (size % chunk_size,), fill_value, dtype=dtype, device=device
-                )
+                torch.full((size % chunk_size,), fill_value, dtype=dtype, device=device)
             )
 
         log.debug(f"[Rank {torch_rt.get_rank()}] Get reg descs")
@@ -85,7 +83,6 @@ class NixlBuffer:
         assert (
             nixl_agent.register_memory(self.reg_descs) is not None
         ), "Failed to register memory"
-
 
     def deregister(self):
         self.nixl_agent.deregister_memory(self.reg_descs)
@@ -193,7 +190,9 @@ class CTPerftest:
         torch_rt.init_group(senders_ranks)
 
         send_bufs, recv_bufs = self._init_buffers(tp)
-        log.debug(f"[Rank {self.my_rank}] Initialized {len(send_bufs)} send buffers and {len(recv_bufs)} recv buffers, sharing recv buffer descriptors")
+        log.debug(
+            f"[Rank {self.my_rank}] Initialized {len(send_bufs)} send buffers and {len(recv_bufs)} recv buffers, sharing recv buffer descriptors"
+        )
         dst_bufs_descs = self._share_recv_buf_descs(recv_bufs)
         handles: list[NixlHandle] = []
         for other, buf in enumerate(send_bufs):

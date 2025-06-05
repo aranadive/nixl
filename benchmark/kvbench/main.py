@@ -119,7 +119,9 @@ def plan_command(model, model_config, model_configs, format, **kwargs):
     config_files = list(dict.fromkeys(config_files))
 
     # Filter arguments for NIXLBench
-    filtered_args = {k: v for k, v in kwargs.items() if k in NIXLBench.defaults() and v is not None}
+    filtered_args = {
+        k: v for k, v in kwargs.items() if k in NIXLBench.defaults() and v is not None
+    }
 
     # Process each model config
     all_plans = []
@@ -133,7 +135,7 @@ def plan_command(model, model_config, model_configs, format, **kwargs):
             # Load model configuration
             model_configuration = ModelConfig.from_yaml(config_file)
             # Override yaml args with cli args if supplied
-            override_yaml_args(model_configuration, type('Args', (), kwargs)())
+            override_yaml_args(model_configuration, type("Args", (), kwargs)())
             model_arch.set_model_config(model_configuration)
 
             separator = "=" * 80
@@ -146,7 +148,7 @@ def plan_command(model, model_config, model_configs, format, **kwargs):
 
             isl_nixl_bench.configure_scheme(direction="isl")
             isl_nixl_bench.configure_segment_type(
-                kwargs.get('backend'), kwargs.get('source'), kwargs.get('destination')
+                kwargs.get("backend"), kwargs.get("source"), kwargs.get("destination")
             )
 
             # Generate plan
@@ -227,10 +229,12 @@ def profile_command(model, model_config, **kwargs):
 
     model_arch = BaseModelArch.from_yaml(model, None)
     model_configuration = ModelConfig.from_yaml(model_config)
-    override_yaml_args(model_configuration, type('Args', (), kwargs)())
+    override_yaml_args(model_configuration, type("Args", (), kwargs)())
     model_arch.set_model_config(model_configuration)
 
-    filtered_args = {k: v for k, v in kwargs.items() if k in NIXLBench.defaults() and v is not None}
+    filtered_args = {
+        k: v for k, v in kwargs.items() if k in NIXLBench.defaults() and v is not None
+    }
     nixl_bench = NIXLBench(model_arch, model_configuration, **filtered_args)
     io_size = model_arch.get_io_size(model_configuration.system.page_size)
     batch_size = get_batch_size(model_arch, model_configuration, io_size)
@@ -239,7 +243,9 @@ def profile_command(model, model_config, **kwargs):
     nixl_bench.configure_buffer_size()
 
     nixl_bench.configure_scheme(direction="isl")
-    nixl_bench.configure_segment_type(kwargs.get('backend'), kwargs.get('source'), kwargs.get('destination'))
+    nixl_bench.configure_segment_type(
+        kwargs.get("backend"), kwargs.get("source"), kwargs.get("destination")
+    )
     separator = "=" * 80
 
     click.echo(f"Model Config: {model_config}")
@@ -266,7 +272,7 @@ def kvcache_command(model, model_config, **kwargs):
 
     # Load model configuration
     model_configuration = ModelConfig.from_yaml(model_config)
-    override_yaml_args(model_configuration, type('Args', (), kwargs)())
+    override_yaml_args(model_configuration, type("Args", (), kwargs)())
     # Set model_config on the model instance using the new method
     model_arch.set_model_config(model_configuration)
 
@@ -287,7 +293,9 @@ def kvcache_command(model, model_config, **kwargs):
     io_size = model_arch.get_io_size(model_configuration.system.page_size)
     batch_size = get_batch_size(model_arch, model_configuration, io_size)
     click.echo(f"{'Model':{max_width}}: {model_arch.model}")
-    click.echo(f"{'Input Sequence Length':{max_width}}: {model_configuration.runtime.isl}")
+    click.echo(
+        f"{'Input Sequence Length':{max_width}}: {model_configuration.runtime.isl}"
+    )
     click.echo(f"{'Batch Size':{max_width}}: {batch_size}")
     click.echo(f"{'IO Size':{max_width}}: {format_bytes(io_size)}")
 
@@ -306,7 +314,7 @@ def io_size_command(model, model_config, **kwargs):
 
     # Load model configuration
     model_configuration = ModelConfig.from_yaml(model_config)
-    override_yaml_args(model_configuration, type('Args', (), kwargs)())
+    override_yaml_args(model_configuration, type("Args", (), kwargs)())
     model_arch.set_model_config(model_configuration)
 
     from math import floor, log
@@ -327,10 +335,25 @@ def io_size_command(model, model_config, **kwargs):
 
 @cli.command("sequential-ct-perftest")
 @click.argument("config_file", type=click.Path(exists=True))
-@click.option("--verify-buffers/--no-verify-buffers", default=False, help="Verify buffer contents after transfer")
-@click.option("--print-recv-buffers/--no-print-recv-buffers", default=False, help="Print received buffer contents")
-@click.option("--json-output-path", type=click.Path(), help="Path to save JSON output", default=None)
-def sequential_ct_perftest(config_file, verify_buffers, print_recv_buffers, json_output_path):
+@click.option(
+    "--verify-buffers/--no-verify-buffers",
+    default=False,
+    help="Verify buffer contents after transfer",
+)
+@click.option(
+    "--print-recv-buffers/--no-print-recv-buffers",
+    default=False,
+    help="Print received buffer contents",
+)
+@click.option(
+    "--json-output-path",
+    type=click.Path(),
+    help="Path to save JSON output",
+    default=None,
+)
+def sequential_ct_perftest(
+    config_file, verify_buffers, print_recv_buffers, json_output_path
+):
     """Run sequential custom traffic performance test using patterns defined in YAML config"""
     with open(config_file, "r") as f:
         config = yaml.safe_load(f)
@@ -371,8 +394,16 @@ def sequential_ct_perftest(config_file, verify_buffers, print_recv_buffers, json
 
 @cli.command("ct-perftest")
 @click.argument("config_file", type=click.Path(exists=True))
-@click.option("--verify-buffers/--no-verify-buffers", default=False, help="Verify buffer contents after transfer")
-@click.option("--print-recv-buffers/--no-print-recv-buffers", default=False, help="Print received buffer contents")
+@click.option(
+    "--verify-buffers/--no-verify-buffers",
+    default=False,
+    help="Verify buffer contents after transfer",
+)
+@click.option(
+    "--print-recv-buffers/--no-print-recv-buffers",
+    default=False,
+    help="Print received buffer contents",
+)
 def ct_perftest(config_file, verify_buffers, print_recv_buffers):
     """Run custom traffic performance test using patterns defined in YAML config"""
     with open(config_file, "r") as f:
