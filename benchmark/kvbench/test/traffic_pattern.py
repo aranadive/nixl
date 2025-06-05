@@ -19,7 +19,6 @@ from typing import Literal
 
 import numpy as np
 import torch
-from runtime.torch_rt import torch_rt
 
 log = logging.getLogger(__name__)
 

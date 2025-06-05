@@ -357,7 +357,7 @@ Example matrix file:
 
 Optionally, generate matrices using the inference workload matrix generation tool:
 ```bash
-python benchmark/tools/inference_workload_matgen.py generate \
+python test/inference_workload_matgen.py generate \
     --num-user-requests 10 \
     --num-prefill-nodes 16 \
     --num-decode-nodes 16 \

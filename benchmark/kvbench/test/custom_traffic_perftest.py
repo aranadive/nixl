@@ -20,7 +20,7 @@ from typing import Literal, Optional, Tuple
 import numpy as np
 import torch
 from nixl._api import nixl_agent
-from runtime.torch_rt import torch_rt
+from torch_rt import torch_rt
 from tabulate import tabulate
 from traffic_pattern import TrafficPattern
 
