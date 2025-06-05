@@ -223,15 +223,16 @@ class _TorchRTUtils(_RTUtils):
 
     def all_reduce(self, vals: List[float | int], op: ReduceOp) -> List[float | int]:
         val_tensor = torch.tensor(vals, device=torch.device("cuda"))
+        op1 = dist.ReduceOp.SUM
         if op == ReduceOp.SUM:
-            op = dist.ReduceOp.SUM
+            op1 = dist.ReduceOp.SUM
         elif op == ReduceOp.AVG:
-            op = dist.ReduceOp.AVG
+            op1 = dist.ReduceOp.AVG
         elif op == ReduceOp.MIN:
-            op = dist.ReduceOp.MIN
+            op1 = dist.ReduceOp.MIN
         elif op == ReduceOp.MAX:
-            op = dist.ReduceOp.MAX
-        dist.all_reduce(val_tensor, op=op)
+            op1 = dist.ReduceOp.MAX
+        dist.all_reduce(val_tensor, op=op1)
         return val_tensor.tolist()
 
     def allgather_obj(self, obj: Any) -> List[Any]:

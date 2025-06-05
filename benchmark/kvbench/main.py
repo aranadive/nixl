@@ -31,11 +31,11 @@ from models.models import BaseModelArch
 from models.utils import get_batch_size, override_yaml_args
 from torch_rt import torch_rt
 
-from benchmark.kvbench.test.custom_traffic_perftest import CTPerftest
-from benchmark.kvbench.test.sequential_custom_traffic_perftest import (
+from custom_traffic_perftest import CTPerftest
+from sequential_custom_traffic_perftest import (
     SequentialCTPerftest,
 )
-from benchmark.kvbench.test.traffic_pattern import TrafficPattern
+from traffic_pattern import TrafficPattern
 
 
 def parse_size(nbytes: str) -> int:

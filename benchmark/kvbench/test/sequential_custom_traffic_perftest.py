@@ -122,7 +122,7 @@ class SequentialCTPerftest(CTPerftest):
             isolated_tp_latencies[tp_ix] /= self.n_isolation_iters
 
         isolated_tp_latencies_by_ranks = torch_rt.allgather_obj(isolated_tp_latencies)
-        isolated_tp_latencies_final: list[float | None] = []
+        isolated_tp_latencies_final: list[float] = []
         for i in range(len(self.traffic_patterns)):
             tp_lats = [
                 rank_lats[i]
@@ -130,7 +130,7 @@ class SequentialCTPerftest(CTPerftest):
                 if rank_lats[i] > 0
             ]
             if not tp_lats:
-                isolated_tp_latencies_final.append(None)
+                isolated_tp_latencies_final.append(0)
             else:
                 isolated_tp_latencies_final.append(max(tp_lats))
 
@@ -166,7 +166,7 @@ class SequentialCTPerftest(CTPerftest):
             tp_starts_by_ranks = torch_rt.allgather_obj(tp_starts)
             tp_ends_by_ranks = torch_rt.allgather_obj(tp_ends)
 
-            tp_latencies: list[float | None] = []
+            tp_latencies: list[float] = []
             for i in range(len(self.traffic_patterns)):
                 starts = [
                     tp_starts_by_ranks[rank][i]
@@ -178,7 +178,7 @@ class SequentialCTPerftest(CTPerftest):
                 starts = [x for x in starts if x is not None]
                 ends = [x for x in ends if x is not None]
                 if not ends or not starts:
-                    tp_latencies.append(None)
+                    tp_latencies.append(0)
                 else:
                     tp_latencies.append(max(ends) - min(starts))
 
@@ -196,8 +196,8 @@ class SequentialCTPerftest(CTPerftest):
                 data = [
                     [
                         tp_sizes_gb[i],
-                        tp_latencies[i] * 1e3 if tp_latencies[i] is not None else None,
-                        isolated_tp_latencies_final[i] * 1e3 if isolated_tp_latencies_final[i] is not None else None,
+                        tp_latencies[i] * 1e3,
+                        isolated_tp_latencies_final[i] * 1e3,
                         len(tp.senders_ranks()),
                     ]
                     for i, tp in enumerate(self.traffic_patterns)
@@ -215,8 +215,8 @@ class SequentialCTPerftest(CTPerftest):
             iter_results = [
                 {
                     "size": tp_sizes_gb[i],
-                    "latency": tp_latencies[i] * 1e3 if tp_latencies[i] is not None else None,
-                    "isolated_latency": isolated_tp_latencies_final[i] * 1e3 if isolated_tp_latencies_final[i] is not None else None,
+                    "latency": tp_latencies[i] * 1e3,
+                    "isolated_latency": isolated_tp_latencies_final[i] * 1e3,
                     "num_senders": len(tp.senders_ranks()),
                 }
                 for i, tp in enumerate(self.traffic_patterns)

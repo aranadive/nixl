@@ -205,7 +205,7 @@ class CTPerftest:
                 buf.xfer_descs,
                 dst_bufs_descs[other],
                 f"{other}",
-                f"{tp.id}_{self.my_rank}_{other}",
+                bytes(f"{tp.id}_{self.my_rank}_{other}", "utf-8"),
             )
             handles.append(NixlHandle(other, handle, tp))
 
