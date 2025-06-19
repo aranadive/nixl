@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import sys
 
 import csv
 import glob
@@ -26,14 +27,14 @@ import numpy as np
 import yaml
 from commands.args import cli_args, common_args, nixl_bench_args, plan_args
 from commands.nixlbench import NIXLBench
-from custom_traffic_perftest import CTPerftest
 from models.model_config import ModelConfig
 from models.models import BaseModelArch
 from models.utils import get_batch_size, override_yaml_args
-from runtime.torch_rt import torch_rt
-from sequential_custom_traffic_perftest import SequentialCTPerftest
-from traffic_pattern import TrafficPattern
+from runtime import dist_rt
 
+from test.sequential_custom_traffic_perftest import SequentialCTPerftest
+from test.traffic_pattern import TrafficPattern
+from test.custom_traffic_perftest import CTPerftest
 
 def parse_size(nbytes: str) -> int:
     """Convert formatted string with unit to bytes"""
@@ -386,7 +387,7 @@ def sequential_ct_perftest(
         print_recv_buffers=print_recv_buffers,
         json_output_path=output_path,
     )
-    torch_rt.destroy_dist()
+    dist_rt.destroy_dist()
 
 
 @cli.command("ct-perftest")
@@ -422,7 +423,7 @@ def ct_perftest(config_file, verify_buffers, print_recv_buffers):
 
     perftest = CTPerftest(pattern, iters=iters, warmup_iters=warmup_iters)
     perftest.run(verify_buffers=verify_buffers, print_recv_buffers=print_recv_buffers)
-    torch_rt.destroy_dist()
+    dist_rt.destroy_dist()
 
 
 if __name__ == "__main__":
