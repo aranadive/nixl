@@ -160,7 +160,15 @@ def nixl_bench_args(func):
         default=False,
     )(func)
     func = click.option(
-        "--gds_filepath", type=str, help="File path for GDS operations"
+        "--gds_filepath",
+        type=str,
+        help="File path for GDS operations"
+    )(func)
+    func = click.option(
+        "--enable_vmm",
+        type=bool,
+        help="Enable VMM memory allocation when DRAM is requested",
+        default=False,
     )(func)
     return func
 
