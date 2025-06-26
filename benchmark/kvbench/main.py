@@ -12,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import sys
 
 import csv
 import glob
@@ -36,8 +35,10 @@ from test.sequential_custom_traffic_perftest import SequentialCTPerftest
 from test.traffic_pattern import TrafficPattern
 from test.custom_traffic_perftest import CTPerftest
 
+
 def parse_size(nbytes: str) -> int:
     """Convert formatted string with unit to bytes"""
+
     options = {"g": 1024 * 1024 * 1024, "m": 1024 * 1024, "k": 1024, "b": 1}
     unit = 1
     key = nbytes[-1].lower()
