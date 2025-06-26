@@ -25,9 +25,10 @@ from test.traffic_pattern import TrafficPattern
 from typing import Any, Dict, List, Optional
 
 import yaml
-from nixl._api import nixl_agent
 from runtime import dist_rt
 from tabulate import tabulate
+
+from nixl._api import nixl_agent
 
 log = logging.getLogger(__name__)
 
@@ -246,7 +247,6 @@ class SequentialCTPerftest(CTPerftest):
 
             iter_metadata["start_ts"] = time.time()
             for tp_ix, handles in enumerate(tp_handles):
-
                 tp = self.traffic_patterns[tp_ix]
 
                 if self.my_rank not in tp.senders_ranks():

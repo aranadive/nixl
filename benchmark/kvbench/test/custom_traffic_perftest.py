@@ -20,9 +20,10 @@ from typing import Literal, Optional, Tuple
 
 import numpy as np
 import torch
-from nixl._api import nixl_agent
 from runtime import dist_rt
 from tabulate import tabulate
+
+from nixl._api import nixl_agent
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +90,6 @@ class NixlBuffer:
 
 
 class CTPerftest:
-
     def __init__(
         self, traffic_pattern: TrafficPattern, iters: int = 1, warmup_iters: int = 0
     ):

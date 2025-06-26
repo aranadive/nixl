@@ -90,7 +90,7 @@ Environment variables:
 Python Application
        ↓
 _EtcdDistUtils (Python)
-       ↓  
+       ↓
 etcd_runtime (pybind11)
        ↓
 xferBenchEtcdRT (C++)
@@ -113,4 +113,4 @@ ETCD Server
 - Add support for custom serialization protocols
 - Optimize data transfer for large objects
 - Add connection pooling and reconnection logic
-- Support for hierarchical barriers and reductions 
+- Support for hierarchical barriers and reductions

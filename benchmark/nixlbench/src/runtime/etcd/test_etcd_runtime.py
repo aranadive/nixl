@@ -4,12 +4,11 @@ Test script for ETCD Python runtime
 Run multiple instances of this script to test distributed functionality
 """
 
-import sys
 import os
-import time
+import sys
 
 # Add the kvbench runtime path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../kvbench/runtime'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../kvbench/runtime"))
 
 try:
     from etcd_rt import _EtcdDistUtils

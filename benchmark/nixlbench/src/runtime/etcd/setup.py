@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -13,13 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/usr/bin/env python3
-
-from pybind11.setup_helpers import Pybind11Extension, build_ext
-from pybind11 import get_cmake_dir
 import pybind11
-from setuptools import setup, Extension
-import os
+from pybind11.setup_helpers import Pybind11Extension, build_ext
+from setuptools import setup
 
 # Define the extension module
 ext_modules = [
@@ -38,7 +36,7 @@ ext_modules = [
             ".",
         ],
         libraries=["etcd-cpp-api"],
-        language='c++'
+        language="c++",
     ),
 ]
 

@@ -223,7 +223,6 @@ def gen_matrices_and_compute_time(
     matrices = []
 
     for batch in tqdm(batches, desc="Generating matrices"):
-
         prefill_worker, decode_worker = next(workers_pool)
         mat = gen_matrix(
             batch,
