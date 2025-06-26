@@ -52,7 +52,7 @@ from pathlib import Path
 from os import PathLike
 import numpy as np
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Any
 from itertools import cycle
 import yaml
 
@@ -62,7 +62,7 @@ class ModelConfig:
     """Configuration for a language model."""
     hidden_size: int        # Model's hidden dimension (H)
     num_layers: int         # Number of layers (L)
-    num_heads: int   =1       # Number of attention heads (N_heads)
+    num_heads: int = 1       # Number of attention heads (N_heads)
     num_kv_heads: Optional[int] = None  # Number of key/value heads (for MQA/GQA)
     dtype_size: float = 2   # Size in bytes (2 for FP16, 4 for FP32)
 
@@ -71,15 +71,16 @@ class ModelConfig:
         return self.hidden_size // self.num_heads
 
     def bytes_per_token(self):
-        #return 2 * self.hidden_size * self.num_layers * self.dtype_size * self.num_heads
+        # return 2 * self.hidden_size * self.num_layers * self.dtype_size * self.num_heads
         if self.num_kv_heads is not None:
             return 2 * self.head_dim * self.num_kv_heads * self.num_layers * self.dtype_size
         else:
             return 2 * self.hidden_size * self.num_layers * self.dtype_size
-    
+
     def kv_cache_size(self, isl):
         """KV cache size in bytes"""
         return isl * self.bytes_per_token()
+
 
 @dataclass
 class TaskConfig:
@@ -88,8 +89,8 @@ class TaskConfig:
     isl_scale: int = 10000  # Context/sequence length scale
     min_isl: int = 1000     # Minimum context/sequence length
     max_isl: int = 128000   # Maximum context/sequence length
-    batch_size: int = 1         # Batch size (B)
-    max_batch_mem: float = 100E9 # Maximum batch memory (100GB)
+    batch_size: int = 1     # Batch size (B)
+    max_batch_mem: float = 100E9  # Maximum batch memory (100GB)
 
 
 @dataclass
@@ -117,21 +118,24 @@ class UserRequest:
         isl = min(max(min_isl, isl), max_isl)
         return cls(isl=isl)
 
+
 @dataclass
 class Batch:
     user_requests: List[UserRequest]
 
     def kv_cache_size(self, model_config: ModelConfig):
         """KV cache size in bytes"""
+
         return sum(model_config.kv_cache_size(req.isl) for req in self.user_requests)
-    
+
     @property
     def size(self):
         return len(self.user_requests)
-    
+
     @property
     def total_isl(self):
         return sum(req.isl for req in self.user_requests)
+
 
 @dataclass
 class TransferMatrix:
@@ -144,7 +148,7 @@ def gen_batches(
     num_user_requests: int,
     task_config: TaskConfig,
     model_config: ModelConfig,
-    max_batch_mem: float = 100E9, # 100GB - capacity of a gpu
+    max_batch_mem: float = 100E9,  # 100GB - capacity of a gpu
 ):
     """
     For now very naive, aggregate requests into batches until it exceeds max_batch_mem or batch_size
@@ -168,6 +172,7 @@ def gen_batches(
         print(f"Last batch is incomplete, his size is {len(curr)}")
 
     return batches
+
 
 def gen_matrices_and_compute_time(
     batches: List[Batch],
@@ -194,7 +199,7 @@ def gen_matrices_and_compute_time(
     workers_pool = cycle(workers_coupling)
     matrices = []
 
-    for batch in tqdm(batches, desc="Generating matrices"): 
+    for batch in tqdm(batches, desc="Generating matrices"):
 
         prefill_worker, decode_worker = next(workers_pool)
         mat = gen_matrix(batch, world_size, prefill_worker, decode_worker, model_config, prefill_worker_config, decode_worker_config)
@@ -203,8 +208,8 @@ def gen_matrices_and_compute_time(
         matrix_obj = TransferMatrix(matrix=mat, compute_time=compute_time, isl=batch.total_isl)
         matrices.append(matrix_obj)
 
-
     return matrices
+
 
 def gen_matrix(
     batch: Batch,
@@ -215,7 +220,7 @@ def gen_matrix(
     prefill_worker_config: WorkerConfig,
     decode_worker_config: WorkerConfig,
 ):
-    kv_size = batch.kv_cache_size(model_config) 
+    kv_size = batch.kv_cache_size(model_config)
     kv_slice_size = kv_size / prefill_worker_config.tp / prefill_worker_config.pp / prefill_worker_config.cp
 
     num_peers = decode_worker_config.tp / prefill_worker_config.tp / prefill_worker_config.cp
@@ -224,7 +229,7 @@ def gen_matrix(
     num_peers = int(num_peers)
     buf_size = kv_slice_size / num_peers
 
-    #print(f"kv_size: {format_size(kv_size)}, kv_slice_size: {format_size(kv_slice_size)}, buf_size: {format_size(buf_size)}, num_peers: {num_peers}")
+    # print(f"kv_size: {format_size(kv_size)}, kv_slice_size: {format_size(kv_slice_size)}, buf_size: {format_size(buf_size)}, num_peers: {num_peers}")
 
     mat = np.zeros((world_size, world_size))
 
@@ -235,10 +240,11 @@ def gen_matrix(
             mat[rank, dst] = buf_size
     return mat
 
+
 def estimate_compute_time(
     batch: Batch,
     model_config: ModelConfig,
-    flops = 36*1E12, # 36 TFlops (h100)
+    flops: float = 36 * 1E12,  # 36 TFlops (h100)
 ):
     """Estimate the compute time of a batch, in seconds
     Very approximative and assumes 36 TFlops (h100)
@@ -262,6 +268,7 @@ def format_size(nbytes: float, precision=2) -> str:
     nbytes = round(nbytes, precision)
     return f"{nbytes:g}{units[units_ix]}"
 
+
 def main(
     num_user_requests: int,
     task_config: TaskConfig,
@@ -278,7 +285,7 @@ def main(
         - prefill_gpus: List of GPUs ranks that are used for prefill
         - rail_optimized: Whether to reorder the decode workers to match rail-optimized communication (assumption: 8 nic per nodes, nic 0 is connected to nic 0 and 4 of other nodes, 1 to 1/5 etc)
             Only supported for 4 GPUs per prefill worker and 8 GPUs per decode worker
-    
+
     Returns:
         matrices
     """
@@ -300,19 +307,19 @@ def main(
     # Create list of all GPU ranks
     prefill_ranks = list(range(num_prefill_gpus))
     decode_ranks = list(range(num_prefill_gpus, num_prefill_gpus + num_decode_gpus))
-    
+
     # Chunk the ranks into worker groups
     prefill_workers = [
         prefill_ranks[i:i + prefill_worker_size] for i in range(0, len(prefill_ranks), prefill_worker_size)
     ]
-    
+
     decode_workers = [
-        decode_ranks[i:i + decode_worker_size] for i in range(0, len(decode_ranks), decode_worker_size) 
+        decode_ranks[i:i + decode_worker_size] for i in range(0, len(decode_ranks), decode_worker_size)
     ]
     if rail_optimized:
         # Reorder the decode workers to match rail-optimized communication
         reordered = []
-        order = [0,4,1,5,2,6,3,7]
+        order = [0, 4, 1, 5, 2, 6, 3, 7]
         for worker in decode_workers:
             new_worker = [worker[ix] for ix in order]
             reordered.append(new_worker)
@@ -331,18 +338,18 @@ def main(
     results_dir = Path(results_dir)
     print(f"Saving {len(matrices)} matrices to {results_dir}")
     results_dir.mkdir(parents=True, exist_ok=True)
-    
+
     metadata: dict[str, Any] = {
         "traffic_patterns": [],
     }
-    
+
     for idx, matrix in enumerate(tqdm(matrices, desc="Saving matrices")):
         # Save matrix to npy file
         matrix_path = results_dir / f"matrix_{idx}.txt"
         with open(matrix_path, "w") as f:
             for row in matrix.matrix:
                 f.write(" ".join(f"{format_size(val)}" for val in row) + "\n")
-        
+
         # Add metadata
         metadata["traffic_patterns"].append({
             "matrix_file": matrix_path.absolute().as_posix(),
@@ -351,14 +358,14 @@ def main(
                 "isl": matrix.isl,
             }
         })
-    
+
     # Save metadata to YAML
     metadata_path = results_dir / "metadata.yaml"
     with open(metadata_path, "w") as f:
         yaml.dump(metadata, f)
         print(f"Saved metadata to {metadata_path}")
 
-    
+
 if __name__ == "__main__":
     import click
 
@@ -399,12 +406,12 @@ if __name__ == "__main__":
     @click.option('--max-batch-mem', default=100E9, type=float, help='Maximum batch memory')
     @click.option('--rail-optimized/--no-rail-optimized', default=False, help='Whether to use rail optimization')
     @click.option('--ppn', default=8, type=int, help='Number of GPUs per node')
-    def generate(num_user_requests, batch_size, num_prefill_nodes, num_decode_nodes,
-                prefill_tp, prefill_pp, prefill_cp, decode_tp, decode_pp, decode_cp,
-                model, hidden_size, num_layers, num_heads, num_kv_heads, dtype_size,
-                results_dir, isl_mean, isl_scale, min_isl, max_isl, max_batch_mem, rail_optimized, ppn ):
+    def generate(num_user_requests, batch_size, num_prefill_nodes, num_decode_nodes, prefill_tp,
+                 prefill_pp, prefill_cp, decode_tp, decode_pp, decode_cp,
+                 model, hidden_size, num_layers, num_heads, num_kv_heads, dtype_size,
+                 results_dir, isl_mean, isl_scale, min_isl, max_isl, max_batch_mem, rail_optimized, ppn):
         """Generate communication matrices for given configuration"""
-        
+
         if model:
             if model not in PREDEFINED_MODELS:
                 raise click.BadParameter(f"Unknown model {model}. Available models: {list(PREDEFINED_MODELS.keys())}")
@@ -419,7 +426,7 @@ if __name__ == "__main__":
                 num_kv_heads=num_kv_heads,
                 dtype_size=dtype_size
             )
-        
+
         task_config = TaskConfig(
             isl_mean=isl_mean,
             isl_scale=isl_scale,
@@ -429,7 +436,7 @@ if __name__ == "__main__":
             max_batch_mem=max_batch_mem,
         )
 
-        world_size = num_prefill_nodes * prefill_tp + num_decode_nodes * decode_tp
+        # world_size = num_prefill_nodes * prefill_tp + num_decode_nodes * decode_tp
         # print(f"World size: {world_size}")
         # print(f"Model config: {model_config}")
 
@@ -444,6 +451,5 @@ if __name__ == "__main__":
             results_dir=results_dir,
             rail_optimized=rail_optimized,
         )
-
 
     cli()
