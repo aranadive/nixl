@@ -56,7 +56,7 @@ class TrafficPattern:
                     senders_ranks.append(i)
                     break
         return list(set(senders_ranks))
-    
+
     def receivers_ranks(self):
         """Return the ranks that receive messages"""
         receivers_ranks = []
@@ -66,21 +66,20 @@ class TrafficPattern:
                     receivers_ranks.append(j)
                     break
         return list(set(receivers_ranks))
-    
+
     def buf_size(self, src, dst):
         return self.matrix[src, dst]
-    
+
     def total_src_size(self, rank):
         """Return the sum of the sizes received by <rank>"""
         total_src_size = 0
         for other_rank in range(self.matrix.shape[0]):
             total_src_size += self.matrix[rank][other_rank]
         return total_src_size
-    
+
     def total_dst_size(self, rank):
         """Return the sum of the sizes received by <rank>"""
         total_dst_size = 0
         for other_rank in range(self.matrix.shape[0]):
             total_dst_size += self.matrix[other_rank][rank]
         return total_dst_size
-

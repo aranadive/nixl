@@ -30,7 +30,6 @@ from test.custom_traffic_perftest import CTPerftest, NixlBuffer
 from test.traffic_pattern import TrafficPattern
 
 
-
 log = logging.getLogger(__name__)
 
 
@@ -63,7 +62,7 @@ class SequentialCTPerftest(CTPerftest):
         # NixlBuffer caches buffers and reuse them if they are big enough, let's initialize them once, with the largest needed size
         self.send_buf_by_mem_type = {}
         self.recv_buf_by_mem_type = {}
-    
+
     def _init_pgs(self):
         log.debug(f"[Rank {self.my_rank}] Initializing PGs")
         for tp in self.traffic_patterns:
@@ -94,14 +93,13 @@ class SequentialCTPerftest(CTPerftest):
         log.debug(f"[Rank {self.my_rank}] Destroying buffers")
         for buf in chain(self.send_buf_by_mem_type.values(), self.recv_buf_by_mem_type.values()):
             buf.destroy()
-        
+
     def _barrier_tp(self, tp: TrafficPattern):
         """Barrier for a traffic pattern"""
         dist_rt.barrier(tp.senders_ranks())
-    
+
     def _get_bufs(self, tp: TrafficPattern):
         log.debug(f"[Rank {self.my_rank}] Getting buffers for TP {tp.id}")
-        senders_ranks = tp.senders_ranks()
 
         send_bufs = [None for _ in range(self.world_size)]
         recv_bufs = [None for _ in range(self.world_size)]
@@ -123,7 +121,7 @@ class SequentialCTPerftest(CTPerftest):
 
             send_bufs[other_rank] = send_buf
             recv_bufs[other_rank] = recv_buf
-        
+
         return send_bufs, recv_bufs
 
     def run(
@@ -153,8 +151,8 @@ class SequentialCTPerftest(CTPerftest):
             "iterations_results": [],
             "metadata": {
                 "ts": time.time(),
-                "iters": [{} for _ in range(self.n_iters)]
-                },
+                "iters": [{} for _ in range(self.n_iters)],
+            },
         }
 
         tp_handles: list[list] = []
@@ -177,7 +175,7 @@ class SequentialCTPerftest(CTPerftest):
         results["metadata"]["sol_calculation_ts"] = time.time()
         for tp_ix, handles in enumerate(tp_handles):
             tp = self.traffic_patterns[tp_ix]
-            for _ in range(self.warmup_iters):  
+            for _ in range(self.warmup_iters):
                 self._run_tp(handles, blocking=True)
                 self._barrier_tp(tp)
 
@@ -188,14 +186,14 @@ class SequentialCTPerftest(CTPerftest):
                 self._run_tp(handles, blocking=True)
                 e = time.time()
                 isolated_tp_latencies[tp_ix] += e - t
-                self._barrier_tp(tp) 
-        
+                self._barrier_tp(tp)
+
             isolated_tp_latencies[tp_ix] /= self.n_isolation_iters
 
         isolated_tp_latencies_by_ranks = dist_rt.allgather_obj(isolated_tp_latencies)
         isolated_tp_latencies: list[float | None] = []
         for i in range(len(self.traffic_patterns)):
-            tp_lats = [rank_lats[i] for rank_lats in isolated_tp_latencies_by_ranks if rank_lats[i] > 0 ]
+            tp_lats = [rank_lats[i] for rank_lats in isolated_tp_latencies_by_ranks if rank_lats[i] > 0]
             if not tp_lats:
                 isolated_tp_latencies.append(None)
             else:
@@ -207,7 +205,7 @@ class SequentialCTPerftest(CTPerftest):
         for iter_ix in range(self.n_iters):
             iter_metadata = results["metadata"]["iters"][iter_ix]
             log.debug(f"[Rank {self.my_rank}] Running iteration {iter_ix + 1}/{self.n_iters}")
-            for _ in range(self.warmup_iters): # Warmup
+            for _ in range(self.warmup_iters):  # Warmup
                 for tp_ix, handles in enumerate(tp_handles):
                     self._run_tp(handles, blocking=True)
 
@@ -267,14 +265,13 @@ class SequentialCTPerftest(CTPerftest):
                     mean_bw = 0
                     for rank in tp.senders_ranks():
                         rank_start = tp_starts_by_ranks[rank][i]
-                        rank_end = tp_ends_by_ranks[rank][i]    
+                        rank_end = tp_ends_by_ranks[rank][i]
                         if not rank_start or not rank_end:
                             raise ValueError(f"Rank {rank} has no start or end time, but participated in TP, this is not normal.")
-                        mean_bw += tp.total_src_size(rank)*1e-9 / (rank_end - rank_start)
+                        mean_bw += tp.total_src_size(rank) * 1e-9 / (rank_end - rank_start)
                         # DEBUG LINE
-                        log.info(f"Rank {rank} latency: {rank_end - rank_start} s, size={tp.total_src_size(rank)} GB, bw={tp.total_src_size(rank)*1e-9 / (rank_end - rank_start)} GB/s")
+                        log.info(f"Rank {rank} latency: {rank_end - rank_start} s, size={tp.total_src_size(rank)} GB, bw={tp.total_src_size(rank) * 1e-9 / (rank_end - rank_start)} GB/s")
                         #
-
 
                     mean_bw /= len(tp.senders_ranks())
 
