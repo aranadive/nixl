@@ -14,8 +14,7 @@
 # limitations under the License.
 import logging
 import time
-from itertools import chain
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Literal, Optional, Tuple
 
 import numpy as np
 import torch
@@ -58,7 +57,7 @@ class NixlBuffer:
             device = torch.device('cpu')
         else:
             raise ValueError(f"Unsupported memory type: {mem_type}")
-        
+
         if shards > 1:
             raise ValueError("Sharding is not supported yet")
 
@@ -66,17 +65,17 @@ class NixlBuffer:
             f"[Rank {dist_rt.get_rank()}] Initializing NixlBuffer with size {size}, device {device}, shards {shards}, fill_value {fill_value}"
         )
         self.buf = torch.full((size,), fill_value, dtype=dtype, device=device)
-        
+
         log.debug(f"[Rank {dist_rt.get_rank()}] Registering memory for buffer {self.buf}")
         self.reg_descs = nixl_agent.get_reg_descs(self.buf)
         assert (
             nixl_agent.register_memory(self.reg_descs) is not None
         ), "Failed to register memory"
-    
+
     def get_chunk(self, size, offset):
         if offset + size > self.size:
             raise ValueError(f"Offset {offset} + size {size} is greater than buffer size {self.size}")
-        return self.buf[offset:offset+size]
+        return self.buf[offset:offset + size]
 
     def destroy(self):
         self.nixl_agent.deregister_memory(self.reg_descs)
@@ -105,12 +104,11 @@ class CTPerftest:
 
         self.nixl_agent = nixl_agent(f"{self.my_rank}")
 
-        # One big buffer is used for all the transfers 
+        # One big buffer is used for all the transfers
         self.send_buf = None
         self.recv_buf = None
 
         assert "UCX" in self.nixl_agent.get_plugin_list(), "UCX plugin is not loaded"
-
 
     def _share_md(self) -> None:
         """Share agent metadata between all ranks. (Need to be run after registering buffers)"""
@@ -152,21 +150,15 @@ class CTPerftest:
         the buffer is big enough to handle any of the transfers
         For now, support only CUDA/CPU buffers
         """
-        
-        self.send_buf = NixlBuffer(self.traffic_pattern.total_src_size(self.my_rank), mem_type=tp.mem_type, nixl_agent=self.nixl_agent, dtype=tp.dtype)
-        self.recv_buf = NixlBuffer(self.traffic_pattern.total_dst_size(self.my_rank), mem_type=tp.mem_type, nixl_agent=self.nixl_agent, dtype=tp.dtype)
 
-    def _destroy(self):
-        del self.send_buf
-        del self.recv_buf
-    
+        self.send_buf = NixlBuffer(self.traffic_pattern.total_src_size(self.my_rank), mem_type=self.traffic_pattern.mem_type, nixl_agent=self.nixl_agent, dtype=self.traffic_pattern.dtype)
+        self.recv_buf = NixlBuffer(self.traffic_pattern.total_dst_size(self.my_rank), mem_type=self.traffic_pattern.mem_type, nixl_agent=self.nixl_agent, dtype=self.traffic_pattern.dtype)
+
     def _init_pgs(self):
         senders_ranks = self.traffic_pattern.senders_ranks()
         dist_rt.init_group(senders_ranks)
-    
-    def _get_bufs(self, tp: TrafficPattern):
-        senders_ranks = tp.senders_ranks()
 
+    def _get_bufs(self, tp: TrafficPattern):
         send_bufs = [None for _ in range(self.world_size)]
         recv_bufs = [None for _ in range(self.world_size)]
         send_offset = recv_offset = 0
@@ -184,7 +176,7 @@ class CTPerftest:
 
             send_bufs[other_rank] = send_buf
             recv_bufs[other_rank] = recv_buf
-        
+
         return send_bufs, recv_bufs
 
     def _prepare_tp(
@@ -265,7 +257,7 @@ class CTPerftest:
             if other_rank == self.my_rank:
                 continue
             self.nixl_agent.remove_remote_agent(f"{other_rank}")
-    
+
     def _destroy_buffers(self):
         self.send_buf.destroy()
         self.recv_buf.destroy()
@@ -371,7 +363,7 @@ class CTPerftest:
 
         if verify_buffers:
             self._verify_tp(self.traffic_pattern, recv_bufs, print_recv_buffers)
-        
+
         # Destroy
         self._destroy(handles)
         self._destroy_buffers()
