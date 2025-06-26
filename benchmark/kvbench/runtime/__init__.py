@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .etcd_rt import _EtcdDistUtils
 import os
+
+from .etcd_rt import _EtcdDistUtils
 
 # Initialize with default parameters, can be overridden by environment variables
 etcd_endpoints = os.environ.get("ETCD_ENDPOINTS", "http://localhost:2379")

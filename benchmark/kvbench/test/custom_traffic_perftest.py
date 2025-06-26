@@ -15,15 +15,14 @@
 
 import logging
 import time
+from test.traffic_pattern import TrafficPattern
 from typing import Literal, Optional, Tuple
 
 import numpy as np
 import torch
 from nixl._api import nixl_agent
-from tabulate import tabulate
 from runtime import dist_rt
-
-from test.traffic_pattern import TrafficPattern
+from tabulate import tabulate
 
 log = logging.getLogger(__name__)
 

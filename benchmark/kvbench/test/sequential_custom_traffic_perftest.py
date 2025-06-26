@@ -18,17 +18,16 @@
 import json
 import logging
 import time
-from typing import Any, Dict, List, Optional
 from collections import defaultdict
 from itertools import chain
+from test.custom_traffic_perftest import CTPerftest, NixlBuffer
+from test.traffic_pattern import TrafficPattern
+from typing import Any, Dict, List, Optional
 
 import yaml
 from nixl._api import nixl_agent
-from tabulate import tabulate
 from runtime import dist_rt
-from test.custom_traffic_perftest import CTPerftest, NixlBuffer
-from test.traffic_pattern import TrafficPattern
-
+from tabulate import tabulate
 
 log = logging.getLogger(__name__)
 

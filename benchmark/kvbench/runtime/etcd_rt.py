@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, List, Optional
 import pickle
 import uuid
+from typing import Any, List, Optional
 
-from .rt_base import _RTUtils, ReduceOp
+from .rt_base import ReduceOp, _RTUtils
 
 try:
     import etcd_runtime

@@ -47,14 +47,15 @@ OR instead of hidden-size/num-layers/etc.. Use a preconfigured model:
     --model llama-405b
 """
 
-from tqdm import tqdm
-from pathlib import Path
-from os import PathLike
-import numpy as np
 from dataclasses import dataclass
-from typing import List, Optional, Any
 from itertools import cycle
+from os import PathLike
+from pathlib import Path
+from typing import Any, List, Optional
+
+import numpy as np
 import yaml
+from tqdm import tqdm
 
 
 @dataclass

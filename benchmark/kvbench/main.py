@@ -20,6 +20,9 @@ import json
 import logging
 import os
 from pathlib import Path
+from test.custom_traffic_perftest import CTPerftest
+from test.sequential_custom_traffic_perftest import SequentialCTPerftest
+from test.traffic_pattern import TrafficPattern
 
 import click
 import numpy as np
@@ -30,10 +33,6 @@ from models.model_config import ModelConfig
 from models.models import BaseModelArch
 from models.utils import get_batch_size, override_yaml_args
 from runtime import dist_rt
-
-from test.sequential_custom_traffic_perftest import SequentialCTPerftest
-from test.traffic_pattern import TrafficPattern
-from test.custom_traffic_perftest import CTPerftest
 
 
 def parse_size(nbytes: str) -> int:
