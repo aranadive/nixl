@@ -41,7 +41,11 @@ class SequentialCTPerftest(CTPerftest):
     """
 
     def __init__(
-        self, traffic_patterns: list[TrafficPattern], n_iters: int = 3, n_isolation_iters=30, warmup_iters=30
+        self,
+        traffic_patterns: list[TrafficPattern],
+        n_iters: int = 3,
+        n_isolation_iters=30,
+        warmup_iters=30,
     ) -> None:
         """Initialize multi-pattern performance test.
 
@@ -66,7 +70,9 @@ class SequentialCTPerftest(CTPerftest):
     def _init_pgs(self):
         log.debug(f"[Rank {self.my_rank}] Initializing PGs")
         for tp in self.traffic_patterns:
-            log.debug(f"[Rank {self.my_rank}] Initializing PG - {len(tp.senders_ranks())} Ranks: {tp.senders_ranks()}, world size={self.world_size}")
+            log.debug(
+                f"[Rank {self.my_rank}] Initializing PG - {len(tp.senders_ranks())} Ranks: {tp.senders_ranks()}, world size={self.world_size}"
+            )
             dist_rt.init_group(tp.senders_ranks())
 
     def _init_buffers(self):
@@ -75,23 +81,35 @@ class SequentialCTPerftest(CTPerftest):
         max_dst_by_mem_type = defaultdict(int)
 
         for tp in self.traffic_patterns:
-            max_src_by_mem_type[tp.mem_type] = max(max_src_by_mem_type[tp.mem_type], tp.total_src_size(self.my_rank))
-            max_dst_by_mem_type[tp.mem_type] = max(max_dst_by_mem_type[tp.mem_type], tp.total_dst_size(self.my_rank))
+            max_src_by_mem_type[tp.mem_type] = max(
+                max_src_by_mem_type[tp.mem_type], tp.total_src_size(self.my_rank)
+            )
+            max_dst_by_mem_type[tp.mem_type] = max(
+                max_dst_by_mem_type[tp.mem_type], tp.total_dst_size(self.my_rank)
+            )
 
-        log.debug(f"[Rank {self.my_rank}] Initializing buffers by mem type: \n- src: {max_src_by_mem_type}\n- dst: {max_dst_by_mem_type}")
+        log.debug(
+            f"[Rank {self.my_rank}] Initializing buffers by mem type: \n- src: {max_src_by_mem_type}\n- dst: {max_dst_by_mem_type}"
+        )
         for mem_type, size in max_src_by_mem_type.items():
             if not size:
                 continue
-            self.send_buf_by_mem_type[mem_type] = NixlBuffer(size, mem_type=mem_type, nixl_agent=self.nixl_agent)
+            self.send_buf_by_mem_type[mem_type] = NixlBuffer(
+                size, mem_type=mem_type, nixl_agent=self.nixl_agent
+            )
 
         for mem_type, size in max_dst_by_mem_type.items():
             if not size:
                 continue
-            self.recv_buf_by_mem_type[mem_type] = NixlBuffer(size, mem_type=mem_type, nixl_agent=self.nixl_agent)
+            self.recv_buf_by_mem_type[mem_type] = NixlBuffer(
+                size, mem_type=mem_type, nixl_agent=self.nixl_agent
+            )
 
     def _destroy_buffers(self):
         log.debug(f"[Rank {self.my_rank}] Destroying buffers")
-        for buf in chain(self.send_buf_by_mem_type.values(), self.recv_buf_by_mem_type.values()):
+        for buf in chain(
+            self.send_buf_by_mem_type.values(), self.recv_buf_by_mem_type.values()
+        ):
             buf.destroy()
 
     def _barrier_tp(self, tp: TrafficPattern):
@@ -113,10 +131,14 @@ class SequentialCTPerftest(CTPerftest):
             send_buf = recv_buf = None
 
             if send_size > 0:
-                send_buf = self.send_buf_by_mem_type[tp.mem_type].get_chunk(send_size, send_offset_by_memtype[tp.mem_type])
+                send_buf = self.send_buf_by_mem_type[tp.mem_type].get_chunk(
+                    send_size, send_offset_by_memtype[tp.mem_type]
+                )
                 send_offset_by_memtype[tp.mem_type] += send_size
             if recv_size > 0:
-                recv_buf = self.recv_buf_by_mem_type[tp.mem_type].get_chunk(recv_size, recv_offset_by_memtype[tp.mem_type])
+                recv_buf = self.recv_buf_by_mem_type[tp.mem_type].get_chunk(
+                    recv_size, recv_offset_by_memtype[tp.mem_type]
+                )
                 recv_offset_by_memtype[tp.mem_type] += recv_size
 
             send_bufs[other_rank] = send_buf
@@ -161,7 +183,9 @@ class SequentialCTPerftest(CTPerftest):
         s = time.time()
         log.info(f"[Rank {self.my_rank}] Preparing TPs")
         for i, tp in enumerate(self.traffic_patterns):
-            log.debug(f"[Rank {self.my_rank}] Preparing TP {i}/{len(self.traffic_patterns)}")
+            log.debug(
+                f"[Rank {self.my_rank}] Preparing TP {i}/{len(self.traffic_patterns)}"
+            )
             handles, send_bufs, recv_bufs = self._prepare_tp(tp)
             tp_bufs.append((send_bufs, recv_bufs))
             tp_handles.append(handles)
@@ -169,7 +193,9 @@ class SequentialCTPerftest(CTPerftest):
         results["metadata"]["prepare_tp_time"] = time.time() - s
 
         # Isolated mode - Measure SOL for every matrix
-        log.info(f"[Rank {self.my_rank}] Running isolated benchmark (to measure perf without noise)")
+        log.info(
+            f"[Rank {self.my_rank}] Running isolated benchmark (to measure perf without noise)"
+        )
         isolated_tp_latencies: list[float] = [0 for _ in tp_handles]
 
         results["metadata"]["sol_calculation_ts"] = time.time()
@@ -193,7 +219,11 @@ class SequentialCTPerftest(CTPerftest):
         isolated_tp_latencies_by_ranks = dist_rt.allgather_obj(isolated_tp_latencies)
         isolated_tp_latencies: list[float | None] = []
         for i in range(len(self.traffic_patterns)):
-            tp_lats = [rank_lats[i] for rank_lats in isolated_tp_latencies_by_ranks if rank_lats[i] > 0]
+            tp_lats = [
+                rank_lats[i]
+                for rank_lats in isolated_tp_latencies_by_ranks
+                if rank_lats[i] > 0
+            ]
             if not tp_lats:
                 isolated_tp_latencies.append(None)
             else:
@@ -204,7 +234,9 @@ class SequentialCTPerftest(CTPerftest):
         # Workload mode - Measure perf of the matrices while running the full workload
         for iter_ix in range(self.n_iters):
             iter_metadata = results["metadata"]["iters"][iter_ix]
-            log.debug(f"[Rank {self.my_rank}] Running iteration {iter_ix + 1}/{self.n_iters}")
+            log.debug(
+                f"[Rank {self.my_rank}] Running iteration {iter_ix + 1}/{self.n_iters}"
+            )
             for _ in range(self.warmup_iters):  # Warmup
                 for tp_ix, handles in enumerate(tp_handles):
                     self._run_tp(handles, blocking=True)
@@ -267,10 +299,16 @@ class SequentialCTPerftest(CTPerftest):
                         rank_start = tp_starts_by_ranks[rank][i]
                         rank_end = tp_ends_by_ranks[rank][i]
                         if not rank_start or not rank_end:
-                            raise ValueError(f"Rank {rank} has no start or end time, but participated in TP, this is not normal.")
-                        mean_bw += tp.total_src_size(rank) * 1e-9 / (rank_end - rank_start)
+                            raise ValueError(
+                                f"Rank {rank} has no start or end time, but participated in TP, this is not normal."
+                            )
+                        mean_bw += (
+                            tp.total_src_size(rank) * 1e-9 / (rank_end - rank_start)
+                        )
                         # DEBUG LINE
-                        log.info(f"Rank {rank} latency: {rank_end - rank_start} s, size={tp.total_src_size(rank)} GB, bw={tp.total_src_size(rank) * 1e-9 / (rank_end - rank_start)} GB/s")
+                        log.info(
+                            f"Rank {rank} latency: {rank_end - rank_start} s, size={tp.total_src_size(rank)} GB, bw={tp.total_src_size(rank) * 1e-9 / (rank_end - rank_start)} GB/s"
+                        )
                         #
 
                     mean_bw /= len(tp.senders_ranks())
@@ -293,7 +331,10 @@ class SequentialCTPerftest(CTPerftest):
                     ]
                     for i, tp in enumerate(self.traffic_patterns)
                 ]
-                print(f"Iteration {iter_ix + 1}/{self.n_iters}\n", tabulate(data, headers=headers, floatfmt=".3f"))
+                print(
+                    f"Iteration {iter_ix + 1}/{self.n_iters}\n",
+                    tabulate(data, headers=headers, floatfmt=".3f"),
+                )
 
             if verify_buffers:
                 for i, tp in enumerate(self.traffic_patterns):

@@ -22,7 +22,9 @@ from .rt_base import _RTUtils, ReduceOp
 try:
     import etcd_runtime
 except ImportError:
-    raise ImportError("etcd_runtime module not found. Please build the Python bindings.")
+    raise ImportError(
+        "etcd_runtime module not found. Please build the Python bindings."
+    )
 
 
 class _EtcdDistUtils(_RTUtils):
@@ -57,9 +59,11 @@ class _EtcdDistUtils(_RTUtils):
         # Receive from all other ranks
         for src_rank in range(self._world_size):
             if src_rank != self._rank:
-                result, data = self.etcd_runtime.recv_char(len(serialized_obj), src_rank)
+                result, data = self.etcd_runtime.recv_char(
+                    len(serialized_obj), src_rank
+                )
                 if result == 0:
-                    gathered_objs[src_rank] = pickle.loads(data.encode('latin-1'))
+                    gathered_objs[src_rank] = pickle.loads(data.encode("latin-1"))
                 else:
                     raise RuntimeError(f"Failed to receive data from rank {src_rank}")
 
@@ -88,10 +92,12 @@ class _EtcdDistUtils(_RTUtils):
             if src_rank != self._rank:
                 # We need to know the size of data to receive - use a simple protocol
                 # First receive the size, then the actual data
-                expected_size = len(serialized_objs[self._rank])  # Assume similar sizes for simplicity
+                expected_size = len(
+                    serialized_objs[self._rank]
+                )  # Assume similar sizes for simplicity
                 result, data = self.etcd_runtime.recv_char(expected_size, src_rank)
                 if result == 0:
-                    recv_objs[src_rank] = pickle.loads(data.encode('latin-1'))
+                    recv_objs[src_rank] = pickle.loads(data.encode("latin-1"))
                 else:
                     raise RuntimeError(f"Failed to receive data from rank {src_rank}")
 

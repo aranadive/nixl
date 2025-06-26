@@ -53,9 +53,9 @@ class NixlBuffer:
         self.size = size
         self.nixl_agent = nixl_agent
         if mem_type in ("cuda", "vram"):
-            device = torch.device('cuda')
+            device = torch.device("cuda")
         elif mem_type in ("cpu", "dram"):
-            device = torch.device('cpu')
+            device = torch.device("cpu")
         else:
             raise ValueError(f"Unsupported memory type: {mem_type}")
 
@@ -67,7 +67,9 @@ class NixlBuffer:
         )
         self.buf = torch.full((size,), fill_value, dtype=dtype, device=device)
 
-        log.debug(f"[Rank {dist_rt.get_rank()}] Registering memory for buffer {self.buf}")
+        log.debug(
+            f"[Rank {dist_rt.get_rank()}] Registering memory for buffer {self.buf}"
+        )
         self.reg_descs = nixl_agent.get_reg_descs(self.buf)
         assert (
             nixl_agent.register_memory(self.reg_descs) is not None
@@ -75,8 +77,10 @@ class NixlBuffer:
 
     def get_chunk(self, size, offset):
         if offset + size > self.size:
-            raise ValueError(f"Offset {offset} + size {size} is greater than buffer size {self.size}")
-        return self.buf[offset:offset + size]
+            raise ValueError(
+                f"Offset {offset} + size {size} is greater than buffer size {self.size}"
+            )
+        return self.buf[offset : offset + size]
 
     def destroy(self):
         self.nixl_agent.deregister_memory(self.reg_descs)
@@ -131,11 +135,13 @@ class CTPerftest:
             List of buffer descriptors from all ranks
         """
         xfer_descs = [
-            self.nixl_agent.get_xfer_descs(buf) if buf is not None else None for buf in my_recv_bufs
+            self.nixl_agent.get_xfer_descs(buf) if buf is not None else None
+            for buf in my_recv_bufs
         ]
 
         my_recv_bufs_serdes = [
-            self.nixl_agent.get_serialized_descs(xfer_descs) for xfer_descs in xfer_descs
+            self.nixl_agent.get_serialized_descs(xfer_descs)
+            for xfer_descs in xfer_descs
         ]
 
         dst_bufs_serdes = dist_rt.alltoall_obj(my_recv_bufs_serdes)
@@ -145,15 +151,27 @@ class CTPerftest:
         ]
         return dst_bufs_descs
 
-    def _init_buffers(self) -> tuple[list[Optional[NixlBuffer]], list[Optional[NixlBuffer]]]:
+    def _init_buffers(
+        self,
+    ) -> tuple[list[Optional[NixlBuffer]], list[Optional[NixlBuffer]]]:
         """Initialize the buffers, one big send and recv buffer is used for all the transfers
         it has to be chunked inside each transfer to get buffers per ranks
         the buffer is big enough to handle any of the transfers
         For now, support only CUDA/CPU buffers
         """
 
-        self.send_buf = NixlBuffer(self.traffic_pattern.total_src_size(self.my_rank), mem_type=self.traffic_pattern.mem_type, nixl_agent=self.nixl_agent, dtype=self.traffic_pattern.dtype)
-        self.recv_buf = NixlBuffer(self.traffic_pattern.total_dst_size(self.my_rank), mem_type=self.traffic_pattern.mem_type, nixl_agent=self.nixl_agent, dtype=self.traffic_pattern.dtype)
+        self.send_buf = NixlBuffer(
+            self.traffic_pattern.total_src_size(self.my_rank),
+            mem_type=self.traffic_pattern.mem_type,
+            nixl_agent=self.nixl_agent,
+            dtype=self.traffic_pattern.dtype,
+        )
+        self.recv_buf = NixlBuffer(
+            self.traffic_pattern.total_dst_size(self.my_rank),
+            mem_type=self.traffic_pattern.mem_type,
+            nixl_agent=self.nixl_agent,
+            dtype=self.traffic_pattern.dtype,
+        )
 
     def _init_pgs(self):
         senders_ranks = self.traffic_pattern.senders_ranks()
