@@ -109,7 +109,7 @@ class CTPerftest:
         self.nixl_agent = nixl_agent(f"{self.my_rank}")
 
         # One big buffer is used for all the transfers
-        self.send_buf = None
+        self.send_buf: Optional[NixlBuffer] = None
         self.recv_buf = None
 
         assert "UCX" in self.nixl_agent.get_plugin_list(), "UCX plugin is not loaded"
@@ -253,6 +253,7 @@ class CTPerftest:
             return pending
         else:
             self._wait(pending)
+            return []
 
     def _wait(self, handles: list[NixlHandle]):
         # Wait for transfers to complete

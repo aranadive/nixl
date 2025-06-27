@@ -16,7 +16,7 @@
 import logging
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, final
+from typing import Any, Dict, List, Optional, Tuple
 
 from nixl._api import nixl_agent
 

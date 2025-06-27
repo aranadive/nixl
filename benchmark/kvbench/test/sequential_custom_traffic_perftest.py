@@ -239,8 +239,8 @@ class SequentialCTPerftest(CTPerftest):
                 for tp_ix, handles in enumerate(tp_handles):
                     self._run_tp(handles, blocking=True)
 
-            tp_starts = [None for _ in tp_handles]
-            tp_ends = [None for _ in tp_handles]
+            tp_starts: list[float | None] = [None] * len(tp_handles)
+            tp_ends: list[float | None] = [None] * len(tp_handles)
             dist_rt.barrier()
 
             iter_metadata["start_ts"] = time.time()
@@ -321,7 +321,7 @@ class SequentialCTPerftest(CTPerftest):
                 data = [
                     [
                         tp_sizes_gb[i],
-                        tp_latencies[i] * 1e3,
+                        tp_latencies[i] * 1e3 if tp_latencies[i] is not None else None,
                         isolated_tp_latencies[i] * 1e3,
                         len(tp.senders_ranks()),
                         mean_bw,
@@ -341,7 +341,7 @@ class SequentialCTPerftest(CTPerftest):
             iter_results = [
                 {
                     "size": tp_sizes_gb[i],
-                    "latency": tp_latencies[i] * 1e3,
+                    "latency": tp_latencies[i] * 1e3 if tp_latencies[i] is not None else None,
                     "isolated_latency": isolated_tp_latencies[i] * 1e3,
                     "num_senders": len(tp.senders_ranks()),
                 }
