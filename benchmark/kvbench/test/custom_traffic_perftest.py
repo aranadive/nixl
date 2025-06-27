@@ -110,7 +110,7 @@ class CTPerftest:
 
         # One big buffer is used for all the transfers
         self.send_buf: Optional[NixlBuffer] = None
-        self.recv_buf = None
+        self.recv_buf: Optional[NixlBuffer] = None
 
         assert "UCX" in self.nixl_agent.get_plugin_list(), "UCX plugin is not loaded"
 
@@ -152,7 +152,7 @@ class CTPerftest:
 
     def _init_buffers(
         self,
-    ) -> tuple[list[Optional[NixlBuffer]], list[Optional[NixlBuffer]]]:
+    ):
         """Initialize the buffers, one big send and recv buffer is used for all the transfers
         it has to be chunked inside each transfer to get buffers per ranks
         the buffer is big enough to handle any of the transfers
@@ -171,7 +171,6 @@ class CTPerftest:
             nixl_agent=self.nixl_agent,
             dtype=self.traffic_pattern.dtype,
         )
-        return self.send_buf, self.recv_buf
 
     def _init_pgs(self):
         senders_ranks = self.traffic_pattern.senders_ranks()

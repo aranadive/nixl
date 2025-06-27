@@ -270,7 +270,7 @@ class SequentialCTPerftest(CTPerftest):
             tp_starts_by_ranks = dist_rt.allgather_obj(tp_starts)
             tp_ends_by_ranks = dist_rt.allgather_obj(tp_ends)
 
-            tp_latencies: list[float | None] = []
+            tp_latencies: list[float] = [0.0] * len(self.traffic_patterns)
 
             tp_sizes_gb = [
                 self._get_tp_total_size(tp) / 1e9 for tp in self.traffic_patterns
@@ -286,9 +286,8 @@ class SequentialCTPerftest(CTPerftest):
                 ]
                 starts = [x for x in starts if x is not None]
                 ends = [x for x in ends if x is not None]
-                if not ends or not starts:
-                    tp_latencies.append(None)
-                else:
+
+                if ends and starts:
                     tp_latencies.append(max(ends) - min(starts))
 
                     mean_bw = 0.0
@@ -321,7 +320,7 @@ class SequentialCTPerftest(CTPerftest):
                 data = [
                     [
                         tp_sizes_gb[i],
-                        tp_latencies[i] * 1e3 if tp_latencies[i] is not None else None,
+                        tp_latencies[i] * 1e3,
                         isolated_tp_latencies[i] * 1e3,
                         len(tp.senders_ranks()),
                         mean_bw,
@@ -341,7 +340,7 @@ class SequentialCTPerftest(CTPerftest):
             iter_results = [
                 {
                     "size": tp_sizes_gb[i],
-                    "latency": tp_latencies[i] * 1e3 if tp_latencies[i] is not None else None,
+                    "latency": tp_latencies[i] * 1e3,
                     "isolated_latency": isolated_tp_latencies[i] * 1e3,
                     "num_senders": len(tp.senders_ranks()),
                 }
