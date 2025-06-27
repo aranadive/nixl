@@ -108,9 +108,23 @@ class CTPerftest:
 
         self.nixl_agent = nixl_agent(f"{self.my_rank}")
 
-        # One big buffer is used for all the transfers
-        self.send_buf: Optional[NixlBuffer] = None
-        self.recv_buf: Optional[NixlBuffer] = None
+        """Initialize the buffers, one big send and recv buffer is used for all the transfers
+        it has to be chunked inside each transfer to get buffers per ranks
+        the buffer is big enough to handle any of the transfers
+        For now, support only CUDA/CPU buffers
+        """
+        self.send_buf: NixlBuffer = NixlBuffer(
+            self.traffic_pattern.total_src_size(self.my_rank),
+            mem_type=self.traffic_pattern.mem_type,
+            nixl_agent=self.nixl_agent,
+            dtype=self.traffic_pattern.dtype,
+        )
+        self.recv_buf: NixlBuffer = NixlBuffer(
+            self.traffic_pattern.total_dst_size(self.my_rank),
+            mem_type=self.traffic_pattern.mem_type,
+            nixl_agent=self.nixl_agent,
+            dtype=self.traffic_pattern.dtype,
+        )
 
         assert "UCX" in self.nixl_agent.get_plugin_list(), "UCX plugin is not loaded"
 
@@ -149,28 +163,6 @@ class CTPerftest:
             self.nixl_agent.deserialize_descs(serdes) for serdes in dst_bufs_serdes
         ]
         return dst_bufs_descs
-
-    def _init_buffers(
-        self,
-    ):
-        """Initialize the buffers, one big send and recv buffer is used for all the transfers
-        it has to be chunked inside each transfer to get buffers per ranks
-        the buffer is big enough to handle any of the transfers
-        For now, support only CUDA/CPU buffers
-        """
-
-        self.send_buf = NixlBuffer(
-            self.traffic_pattern.total_src_size(self.my_rank),
-            mem_type=self.traffic_pattern.mem_type,
-            nixl_agent=self.nixl_agent,
-            dtype=self.traffic_pattern.dtype,
-        )
-        self.recv_buf = NixlBuffer(
-            self.traffic_pattern.total_dst_size(self.my_rank),
-            mem_type=self.traffic_pattern.mem_type,
-            nixl_agent=self.nixl_agent,
-            dtype=self.traffic_pattern.dtype,
-        )
 
     def _init_pgs(self):
         senders_ranks = self.traffic_pattern.senders_ranks()
@@ -277,7 +269,6 @@ class CTPerftest:
                 continue
             self.nixl_agent.remove_remote_agent(f"{other_rank}")
 
-    def _destroy_buffers(self):
         self.send_buf.destroy()
         self.recv_buf.destroy()
 
@@ -337,7 +328,6 @@ class CTPerftest:
             Total execution time in seconds
         """
         log.debug(f"[Rank {self.my_rank}] Running CT perftest")
-        self._init_buffers()
         self._init_pgs()
         self._share_md()
 
@@ -385,6 +375,5 @@ class CTPerftest:
 
         # Destroy
         self._destroy(handles)
-        self._destroy_buffers()
 
         return end - start
