@@ -171,14 +171,15 @@ class CTPerftest:
             nixl_agent=self.nixl_agent,
             dtype=self.traffic_pattern.dtype,
         )
+        return self.send_buf, self.recv_buf
 
     def _init_pgs(self):
         senders_ranks = self.traffic_pattern.senders_ranks()
         dist_rt.init_group(senders_ranks)
 
     def _get_bufs(self, tp: TrafficPattern):
-        send_bufs = [None for _ in range(self.world_size)]
-        recv_bufs = [None for _ in range(self.world_size)]
+        send_bufs = [None] * self.world_size
+        recv_bufs = [None] * self.world_size
         send_offset = recv_offset = 0
 
         for other_rank in range(self.world_size):
@@ -304,13 +305,13 @@ class CTPerftest:
 
             if print_recv_buffers:
                 s = ""
-                for b in recv_buf.bufs:
+                for b in recv_buf.buf:
                     s += f"{b}\n"
                 log.info(f"Recv buffer {r}:\n{s}")
 
             # recv_buf has to be filled with the rank of the sender
             # and its size has to be the same as matrix[r][my_rank]
-            full_recv_buf = torch.cat([b for b in recv_buf.bufs])
+            full_recv_buf = torch.cat([b for b in recv_buf.buf])
             expected = torch.full_like(full_recv_buf, r)
             assert torch.all(
                 full_recv_buf == expected

@@ -33,7 +33,6 @@ class ReduceOp(Enum):
 class _RTUtils(ABC):
     """Allow for different distributed backends"""
 
-    @final
     def __init__(self):
         # Key is tuple of the sorted ranks, value is backend group
         self.groups: Dict[Tuple[int, ...], Any] = {}

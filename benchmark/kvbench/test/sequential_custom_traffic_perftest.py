@@ -64,8 +64,8 @@ class SequentialCTPerftest(CTPerftest):
         assert "UCX" in self.nixl_agent.get_plugin_list(), "UCX plugin is not loaded"
 
         # NixlBuffer caches buffers and reuse them if they are big enough, let's initialize them once, with the largest needed size
-        self.send_buf_by_mem_type = {}
-        self.recv_buf_by_mem_type = {}
+        self.send_buf_by_mem_type: dict[str, NixlBuffer] = {}
+        self.recv_buf_by_mem_type: dict[str, NixlBuffer] = {}
 
     def _init_pgs(self):
         log.debug(f"[Rank {self.my_rank}] Initializing PGs")
@@ -122,8 +122,8 @@ class SequentialCTPerftest(CTPerftest):
         send_bufs = [None for _ in range(self.world_size)]
         recv_bufs = [None for _ in range(self.world_size)]
 
-        send_offset_by_memtype = defaultdict(int)
-        recv_offset_by_memtype = defaultdict(int)
+        send_offset_by_memtype: dict[str, int] = {}
+        recv_offset_by_memtype: dict[str, int] = {}
 
         for other_rank in range(self.world_size):
             send_size = tp.matrix[self.my_rank][other_rank]
@@ -217,16 +217,14 @@ class SequentialCTPerftest(CTPerftest):
             isolated_tp_latencies[tp_ix] /= self.n_isolation_iters
 
         isolated_tp_latencies_by_ranks = dist_rt.allgather_obj(isolated_tp_latencies)
-        isolated_tp_latencies: list[float | None] = []
         for i in range(len(self.traffic_patterns)):
             tp_lats = [
                 rank_lats[i]
                 for rank_lats in isolated_tp_latencies_by_ranks
                 if rank_lats[i] > 0
             ]
-            if not tp_lats:
-                isolated_tp_latencies.append(None)
-            else:
+
+            if tp_lats:
                 isolated_tp_latencies.append(max(tp_lats))
 
         log.info(f"[Rank {self.my_rank}] Running workload benchmark")
@@ -293,7 +291,7 @@ class SequentialCTPerftest(CTPerftest):
                 else:
                     tp_latencies.append(max(ends) - min(starts))
 
-                    mean_bw = 0
+                    mean_bw = 0.0
                     for rank in tp.senders_ranks():
                         rank_start = tp_starts_by_ranks[rank][i]
                         rank_end = tp_ends_by_ranks[rank][i]
@@ -310,7 +308,7 @@ class SequentialCTPerftest(CTPerftest):
                         )
                         #
 
-                    mean_bw /= len(tp.senders_ranks())
+                    mean_bw /= float(len(tp.senders_ranks()))
 
             if self.my_rank == 0:
                 headers = [
