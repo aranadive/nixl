@@ -368,21 +368,25 @@ std::vector<nixl_backend_t> nixlPluginManager::getLoadedPluginNames() {
     return names;
 }
 
-void nixlPluginManager::registerStaticPlugin(const char* name, nixlStaticPluginCreatorFunc creator) {
+void
+nixlPluginManager::registerStaticPlugin(nixlStaticPluginCreatorFunc creator) {
     lock_guard lg(lock);
 
-    nixlStaticPluginInfo info;
-    info.name = name;
-    info.createFunc = creator;
-    static_plugins_.push_back(info);
-
     //Static Plugins are considered pre-loaded
-    nixlBackendPlugin* plugin = info.createFunc();
-    NIXL_INFO << "Loading static plugin: " << name;
+    nixlBackendPlugin *plugin = creator();
+    const char *name = plugin->get_plugin_name();
+
     if (plugin) {
+        NIXL_TRACE << "Loading static plugin: " << name;
+
         // Register the loaded plugin
         auto plugin_handle = std::make_shared<const nixlPluginHandle>(nullptr, plugin);
         loaded_plugins_[name] = plugin_handle;
+
+        nixlStaticPluginInfo info;
+        info.name = name;
+        info.createFunc = creator;
+        static_plugins_.push_back(info);
     }
 }
 
@@ -392,7 +396,7 @@ const std::vector<nixlStaticPluginInfo>& nixlPluginManager::getStaticPlugins() {
 
 #define NIXL_REGISTER_STATIC_PLUGIN(name)                   \
     extern nixlBackendPlugin *createStatic##name##Plugin(); \
-    registerStaticPlugin(#name, createStatic##name##Plugin);
+    registerStaticPlugin(createStatic##name##Plugin);
 
 void nixlPluginManager::registerBuiltinPlugins() {
 #ifdef STATIC_PLUGIN_LIBFABRIC

@@ -69,7 +69,8 @@ private:
     std::mutex lock;
 
     void registerBuiltinPlugins();
-    void registerStaticPlugin(const char* name, nixlStaticPluginCreatorFunc creator);
+    void
+    registerStaticPlugin(nixlStaticPluginCreatorFunc creator);
 
     // Private constructor for singleton pattern
     nixlPluginManager();
