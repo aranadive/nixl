@@ -36,7 +36,7 @@
 #include <omp.h>
 #include <thread>
 #include <chrono>
-#if HAVE_CUDA
+#if HAVE_CUDA && HAVE_NIXL_DEV_API
 #include "gdaki_kernels.cuh"
 #endif
 
@@ -1146,7 +1146,10 @@ execTransfer(nixlAgent *agent,
         nixlXferReqH *req;
         nixl_status_t rc;
         std::string target;
-        uint64_t remote_addr;
+
+#if HAVE_CUDA && HAVE_NIXL_DEV_API
+        uint64_t remote_addr = 0;
+#endif
 
         if (xferBenchConfig::isStorageBackend()) {
             target = "initiator";
@@ -1159,8 +1162,10 @@ execTransfer(nixlAgent *agent,
         // Set signal parameters and remove signal buffer from transfer lists for GDAKI
         if (is_gdaki_enabled && !local_iov.empty() && !remote_iov.empty()) {
             // In GDAKI protocol: initiator signals target's buffer, target monitors its own buffer
+#if HAVE_CUDA && HAVE_NIXL_DEV_API
             const auto &signal_iov = remote_iov.back();
             remote_addr = signal_iov.addr;
+#endif
 
             // Remove signal buffer from transfer descriptor lists
             if (local_transfer_iov.size() > 0) {
@@ -1179,10 +1184,10 @@ execTransfer(nixlAgent *agent,
 
         if (is_gdaki_enabled) {
             // Use device-side posting for GDAKI transfers
-#if HAVE_CUDA
+#if HAVE_CUDA && HAVE_NIXL_DEV_API
             nixlGpuXferReqH gpu_req_handle;
 
-            CHECK_NIXL_ERROR(agent->createGpuXferReq(req, gpu_req_handle),
+            CHECK_NIXL_ERROR(agent->createGpuXferReq(*req, gpu_req_handle),
                              "createGpuXferReq failed");
 
             const nixlTime::us_t prepare_duration = timer.lap();
@@ -1193,7 +1198,7 @@ execTransfer(nixlAgent *agent,
                 (xferBenchConfig::gdaki_coordination_level == "thread" ||
                  xferBenchConfig::gdaki_coordination_level == "warp")) {
                 // Use partial transfer kernel for thread/warp coordination
-                CHECK_NIXL_ERROR(launchGdakiPartialKernel(gpu_req_handle,
+                CHECK_NIXL_ERROR(launchGdakiPartialKernel(&gpu_req_handle,
                                                           num_iter,
                                                           xferBenchConfig::gdaki_coordination_level,
                                                           xferBenchConfig::gdaki_threads_per_block,
@@ -1204,7 +1209,7 @@ execTransfer(nixlAgent *agent,
                                  "launchGdakiPartialKernel failed");
             } else {
                 // Use full transfer kernel (block coordination only)
-                CHECK_NIXL_ERROR(launchGdakiKernel(gpu_req_handle,
+                CHECK_NIXL_ERROR(launchGdakiKernel(&gpu_req_handle,
                                                    num_iter,
                                                    xferBenchConfig::gdaki_coordination_level,
                                                    xferBenchConfig::gdaki_threads_per_block,
@@ -1230,12 +1235,12 @@ execTransfer(nixlAgent *agent,
             }
 
             // Release GPU request
-            agent->releaseXferReqtoGPU(gpu_req_handle);
+            agent->releaseGpuXferReq(gpu_req_handle);
 #else
             std::cout << "GDAKI: CUDA not available, falling back to host-side posting"
                       << std::endl;
             ret = -1;
-#endif
+#endif /* HAVE_CUDA && HAVE_NIXL_DEV_API */
         } else {
             const nixlTime::us_t prepare_duration = timer.lap();
             thread_stats.prepare_duration.add(prepare_duration);
@@ -1337,6 +1342,7 @@ xferBenchNixlWorker::poll(size_t block_size) {
     total_iter = skip + num_iter;
 
     if (is_gdaki_enabled) {
+#if HAVE_CUDA && HAVE_NIXL_DEV_API
         // GDAKI mode: Target monitors signal buffer instead of waiting for notifications
         // Monitor signal buffer if we have one
         if (!signal_buffers.empty()) {
@@ -1344,10 +1350,8 @@ xferBenchNixlWorker::poll(size_t block_size) {
             // Wait for warmup iterations to complete
             uint64_t count = 0;
             while (count < skip) {
-#if HAVE_CUDA
-                count = nixlGpuReadSignal(signal_addr);
+                count = readNixlGpuSignal(signal_addr);
                 std::cout << "Got count in warmup: " << count << " while polling" << std::endl;
-#endif
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
             // Synchronize after warmup (match initiator)
@@ -1355,10 +1359,8 @@ xferBenchNixlWorker::poll(size_t block_size) {
 
             // Wait for all iterations to complete
             while (count < total_iter) {
-#if HAVE_CUDA
-                count = nixlGpuReadSignal(signal_addr);
+                count = readNixlGpuSignal(signal_addr);       
                 std::cout << "Got count: " << count << " while polling" << std::endl;
-#endif
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
         } else {
@@ -1369,6 +1371,7 @@ xferBenchNixlWorker::poll(size_t block_size) {
         // Final synchronize (match initiator)
         synchronize();
         return;
+#endif /* HAVE_CUDE && HAVE_NIXL_DEV_API */
     }
 
     // Standard polling for non-GDAKI transfers
