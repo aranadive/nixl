@@ -452,7 +452,16 @@ if __name__ == "__main__":
             dtype_size=2,
         ),
         "qwen3-30B": ModelConfig(
-            hidden_size=32768, num_layers=48, num_heads=32, num_kv_heads=4, dtype_size=2
+            hidden_size=2048, num_layers=48, num_heads=32, num_kv_heads=4, dtype_size=2
+        ),
+        "qwen3-235B": ModelConfig(
+            hidden_size=4096, num_layers=94, num_heads=64, num_kv_heads=4, dtype_size=2
+        ),
+        "gpt-oss-120B": ModelConfig(
+            hidden_size=2880, num_layers=36, num_heads=64, num_kv_heads=8, dtype_size=2
+        ),
+        "gpt-oss-20B": ModelConfig(
+            hidden_size=2880, num_layers=24, num_heads=64, num_kv_heads=8, dtype_size=2
         ),
         "deepseek-r1-distill-llama-70b": ModelConfig(
             hidden_size=8192, num_layers=80, num_heads=64, num_kv_heads=8, dtype_size=2
