@@ -131,10 +131,7 @@ const std::vector<xferBenchParamInfo> xbench_params = {
 
     // Add GDAKI options for NIXL worker
     NB_ARG_BOOL(enable_gdaki, false, "Enable GDAKI (only used with nixl worker)"),
-    NB_ARG_STRING(gdaki_gpu_device_list,
-                  "0",
-                  "Comma-separated GPU device list for GDAKI (only used with nixl worker and when "
-                  "enable_gdaki=1)"),
+
     // GDAKI kernel configuration parameters
     NB_ARG_STRING(gdaki_gpu_level,
                   "block",
@@ -443,13 +440,14 @@ xferBenchConfig::loadParams(cxxopts::ParseResult &result) {
                               << "' will fall back to 'block' coordination (enable partial "
                                  "transfers for full support)."
                               << std::endl;
+                    gdaki_gpu_level = xferBenchConfigGpuLevelBlock;
                 }
             }
 
             if (gdaki_threads_per_block < 1 ||
                 gdaki_threads_per_block > XFERBENCH_DEV_API_MAX_THREADS) {
                 std::cerr << "Invalid GDAKI threads per block: " << gdaki_threads_per_block
-                          << ". Must be between 1 and 1024" << std::endl;
+                          << ". Must be between 1 and " << XFERBENCH_DEV_API_MAX_THREADS << std::endl;
                 return -1;
             }
 
