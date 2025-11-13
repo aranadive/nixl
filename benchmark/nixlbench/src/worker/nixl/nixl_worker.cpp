@@ -1478,8 +1478,6 @@ execDeviceTransfer(nixlAgent *agent,
         nixlXferReqH *req;
         std::string target;
 
-        uint64_t remote_addr = 0;
-
         params.notifMsg = "0xBEEF";
         params.hasNotif = true;
         target = "target";
@@ -1487,8 +1485,6 @@ execDeviceTransfer(nixlAgent *agent,
         // Set signal parameters and remove signal buffer from transfer lists for GDAKI
         if (!local_iov.empty() && !remote_iov.empty()) {
             // In GDAKI protocol: initiator signals target's buffer, target monitors its own buffer
-            const auto &signal_iov = remote_iov.back();
-            remote_addr = signal_iov.addr;
 
             // Remove signal buffer from transfer descriptor lists
             if (local_transfer_iov.size() > 0) {
@@ -1530,8 +1526,7 @@ execDeviceTransfer(nixlAgent *agent,
                                           xferBenchConfig::gdaki_threads_per_block,
                                           xferBenchConfig::gdaki_blocks_per_grid,
                                           0,
-                                          1,
-                                          remote_addr};
+                                          1};
                 CHECK_NIXL_ERROR(launchDevicePartialKernel(&gpu_req_handle, params),
                                  "launchGdakiPartialKernel failed");
             }
@@ -1547,8 +1542,7 @@ execDeviceTransfer(nixlAgent *agent,
                                           xferBenchConfig::gdaki_threads_per_block,
                                           xferBenchConfig::gdaki_blocks_per_grid,
                                           0,
-                                          1,
-                                          remote_addr};
+                                          1};
                 CHECK_NIXL_ERROR(launchDeviceKernel(&gpu_req_handle, params),
                                  "launchGdakiKernel failed");
             }
