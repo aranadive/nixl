@@ -194,20 +194,22 @@ public:
 #define XFERBENCH_DEV_API_MAX_THREADS 1024
 #define XFERBENCH_DEV_API_MIN_BLOCKS_PER_GRID 1
 
-#define IS_PAIRWISE_AND_SG() (XFERBENCH_SCHEME_PAIRWISE == xferBenchConfig::scheme && \
-                              XFERBENCH_MODE_SG == xferBenchConfig::mode)
-#define IS_PAIRWISE_AND_MG() (XFERBENCH_SCHEME_PAIRWISE == xferBenchConfig::scheme && \
-                              XFERBENCH_MODE_MG == xferBenchConfig::mode)
+#define IS_PAIRWISE_AND_SG()                                 \
+    (XFERBENCH_SCHEME_PAIRWISE == xferBenchConfig::scheme && \
+     XFERBENCH_MODE_SG == xferBenchConfig::mode)
+#define IS_PAIRWISE_AND_MG()                                 \
+    (XFERBENCH_SCHEME_PAIRWISE == xferBenchConfig::scheme && \
+     XFERBENCH_MODE_MG == xferBenchConfig::mode)
 
     constexpr std::string_view xferBenchConfigGpuLevelThread{"thread"};
     constexpr std::string_view xferBenchConfigGpuLevelWarp{"warp"};
     constexpr std::string_view xferBenchConfigGpuLevelBlock{"block"};
-    
+
     namespace {
         const std::unordered_set<std::string_view> xferBenchConfigGpuLevels{
-                                                xferBenchConfigGpuLevelThread,
-                                                xferBenchConfigGpuLevelWarp,
-                                                xferBenchConfigGpuLevelBlock};
+            xferBenchConfigGpuLevelThread,
+            xferBenchConfigGpuLevelWarp,
+            xferBenchConfigGpuLevelBlock};
     }
 
     static int

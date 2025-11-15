@@ -447,7 +447,8 @@ xferBenchConfig::loadParams(cxxopts::ParseResult &result) {
             if (gdaki_threads_per_block < 1 ||
                 gdaki_threads_per_block > XFERBENCH_DEV_API_MAX_THREADS) {
                 std::cerr << "Invalid GDAKI threads per block: " << gdaki_threads_per_block
-                          << ". Must be between 1 and " << XFERBENCH_DEV_API_MAX_THREADS << std::endl;
+                          << ". Must be between 1 and " << XFERBENCH_DEV_API_MAX_THREADS
+                          << std::endl;
                 return -1;
             }
 
