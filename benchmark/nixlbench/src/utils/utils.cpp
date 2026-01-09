@@ -180,10 +180,11 @@ const std::vector<xferBenchParamInfo> xbench_params = {
                   XFERBENCH_OBJ_REQ_CHECKSUM_SUPPORTED,
                   "Required checksum for S3 backend [supported, required]"),
     NB_ARG_STRING(obj_ca_bundle, "", "Path to CA bundle for S3 backend"),
-    NB_ARG_UINT64(obj_crt_min_limit,
-                  0,
-                  "Minimum object size (bytes) to use S3 CRT client for high-performance transfers. "
-                  "0 means CRT client is disabled (default: 0)"),
+    NB_ARG_UINT64(
+        obj_crt_min_limit,
+        0,
+        "Minimum object size (bytes) to use S3 CRT client for high-performance transfers. "
+        "0 means CRT client is disabled (default: 0)"),
 
     // HF3FS options - only used when backend is HF3FS
     NB_ARG_INT32(hf3fs_iopool_size, 64, "Size of io memory pool"),
