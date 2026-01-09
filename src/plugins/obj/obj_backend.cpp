@@ -55,6 +55,38 @@ getCrtMinLimit(nixl_b_params_t *custom_params) {
     return std::numeric_limits<size_t>::max(); // Disabled by default
 }
 
+/**
+ * Create the appropriate object storage client based on custom parameters.
+ * Supports S3 Vanilla, S3 Accelerated, and Dell OBS clients.
+ */
+std::shared_ptr<objectClient>
+createObjectClient(nixl_b_params_t *custom_params,
+                   std::shared_ptr<Aws::Utils::Threading::Executor> executor) {
+    if (!custom_params) {
+        return std::make_shared<awsS3Client>(custom_params, executor);
+    }
+
+    // Check for accelerated parameter
+    auto accel_it = custom_params->find("accelerated");
+    if (accel_it != custom_params->end() && accel_it->second == "true") {
+        // Check for type parameter to determine vendor-specific client
+        auto type_it = custom_params->find("type");
+        if (type_it != custom_params->end()) {
+            if (type_it->second == "dell") {
+                NIXL_INFO << "Creating Dell OBS Object Client";
+                return std::make_shared<awsDellOBSClient>(custom_params, executor);
+            }
+        }
+        // Default to generic S3 Accelerated client
+        NIXL_INFO << "Creating S3 Accelerated Object Client";
+        return std::make_shared<awsS3AccelClient>(custom_params, executor);
+    }
+
+    // Default to vanilla S3 client
+    NIXL_INFO << "Creating S3 Vanilla Object Client";
+    return std::make_shared<awsS3Client>(custom_params, executor);
+}
+
 bool
 isValidPrepXferParams(const nixl_xfer_op_t &operation,
                       const nixl_meta_dlist_t &local,
@@ -137,20 +169,23 @@ public:
 nixlObjEngine::nixlObjEngine(const nixlBackendInitParams *init_params)
     : nixlBackendEngine(init_params),
       executor_(std::make_shared<asioThreadPoolExecutor>(getNumThreads(init_params->customParams))),
-      s3Client_(std::make_shared<awsS3Client>(init_params->customParams, executor_)),
-      s3CrtClient_(std::make_shared<awsS3CrtClient>(init_params->customParams, executor_)),
+      s3Client_(createObjectClient(init_params->customParams, executor_)),
+      s3CrtClient_(nullptr),
       crtMinLimit_(getCrtMinLimit(init_params->customParams)) {
-    NIXL_INFO << "Object storage backend initialized with dual S3 clients";
+
+    // Create S3 CRT client if crtMinLimit is configured
     if (crtMinLimit_ < std::numeric_limits<size_t>::max()) {
+        s3CrtClient_ = std::make_shared<awsS3CrtClient>(init_params->customParams, executor_);
+        NIXL_INFO << "Object storage backend initialized with primary client + S3 CRT client";
         NIXL_INFO << "S3 CRT client enabled for objects >= " << crtMinLimit_ << " bytes";
     } else {
-        NIXL_INFO << "S3 CRT client disabled (no crtMinLimit set)";
+        NIXL_INFO << "Object storage backend initialized with single primary client";
     }
 }
 
 // Used for testing to inject mock S3 client dependencies
 nixlObjEngine::nixlObjEngine(const nixlBackendInitParams *init_params,
-                             std::shared_ptr<iS3Client> s3_client,
+                             std::shared_ptr<objectClient> s3_client,
                              std::shared_ptr<awsS3CrtClient> s3_crt_client)
     : nixlBackendEngine(init_params),
       executor_(std::make_shared<asioThreadPoolExecutor>(std::thread::hardware_concurrency())),
@@ -159,7 +194,7 @@ nixlObjEngine::nixlObjEngine(const nixlBackendInitParams *init_params,
       crtMinLimit_(getCrtMinLimit(init_params->customParams)) {
     if (s3Client_) s3Client_->setExecutor(executor_);
     if (s3CrtClient_) s3CrtClient_->setExecutor(executor_);
-    NIXL_INFO << "Object storage backend initialized with injected S3 clients";
+    NIXL_INFO << "Object storage backend initialized with injected object clients";
 }
 
 nixlObjEngine::~nixlObjEngine() {

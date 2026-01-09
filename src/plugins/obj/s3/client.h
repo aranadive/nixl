@@ -18,76 +18,20 @@
 #ifndef OBJ_PLUGIN_S3_CLIENT_H
 #define OBJ_PLUGIN_S3_CLIENT_H
 
-#include <functional>
 #include <memory>
 #include <string_view>
 #include <cstdint>
 #include <aws/s3/S3Client.h>
 #include <aws/core/utils/memory/stl/AWSString.h>
 #include <aws/core/Aws.h>
+#include "base/client.h"
 #include "nixl_types.h"
 
-using put_object_callback_t = std::function<void(bool success)>;
-using get_object_callback_t = std::function<void(bool success)>;
-
 /**
- * Abstract interface for S3 client operations.
- * Provides async operations for PutObject and GetObject.
+ * S3 Vanilla Object Client - Base implementation using AWS SDK S3Client.
+ * This is the standard S3 client implementation that other S3-based clients can inherit from.
  */
-class iS3Client {
-public:
-    virtual ~iS3Client() = default;
-
-    /**
-     * Set the executor for async operations.
-     * @param executor The executor to use for async operations
-     */
-    virtual void
-    setExecutor(std::shared_ptr<Aws::Utils::Threading::Executor> executor) = 0;
-
-    /**
-     * Asynchronously put an object to S3.
-     * @param key The object key
-     * @param data_ptr Pointer to the data to upload
-     * @param data_len Length of the data in bytes
-     * @param offset Offset within the object
-     * @param callback Callback function to handle the result
-     */
-    virtual void
-    putObjectAsync(std::string_view key,
-                   uintptr_t data_ptr,
-                   size_t data_len,
-                   size_t offset,
-                   put_object_callback_t callback) = 0;
-
-    /**
-     * Asynchronously get an object from S3.
-     * @param key The object key
-     * @param data_ptr Pointer to the buffer to store the downloaded data
-     * @param data_len Maximum length of data to read
-     * @param offset Offset within the object to start reading from
-     * @param callback Callback function to handle the result
-     */
-    virtual void
-    getObjectAsync(std::string_view key,
-                   uintptr_t data_ptr,
-                   size_t data_len,
-                   size_t offset,
-                   get_object_callback_t callback) = 0;
-
-    /**
-     * Check if the object exists.
-     * @param key The object key
-     * @return true if the object exists, false otherwise
-     */
-    virtual bool
-    checkObjectExists(std::string_view key) = 0;
-};
-
-/**
- * Concrete implementation of IS3Client using AWS SDK S3Client.
- */
-class awsS3Client : public iS3Client {
+class awsS3Client : public objectClient {
 public:
     /**
      * Constructor that creates an AWS S3Client from custom parameters.
@@ -96,6 +40,8 @@ public:
      */
     awsS3Client(nixl_b_params_t *custom_params,
                 std::shared_ptr<Aws::Utils::Threading::Executor> executor = nullptr);
+
+    virtual ~awsS3Client() = default;
 
     void
     setExecutor(std::shared_ptr<Aws::Utils::Threading::Executor> executor) override;
@@ -117,7 +63,7 @@ public:
     bool
     checkObjectExists(std::string_view key) override;
 
-private:
+protected:
     std::unique_ptr<Aws::SDKOptions, std::function<void(Aws::SDKOptions *)>> awsOptions_;
     std::unique_ptr<Aws::S3::S3Client> s3Client_;
     Aws::String bucketName_;
