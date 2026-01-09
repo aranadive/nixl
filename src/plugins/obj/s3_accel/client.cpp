@@ -25,11 +25,11 @@
 #include <absl/strings/str_format.h>
 #include <iostream>
 
-awsS3CrtClient::awsS3CrtClient(nixl_b_params_t *custom_params,
-                               std::shared_ptr<Aws::Utils::Threading::Executor> executor)
+awsS3AccelClient::awsS3AccelClient(nixl_b_params_t *custom_params,
+                                   std::shared_ptr<Aws::Utils::Threading::Executor> executor)
     : awsS3Client(custom_params, executor) {
 
-    // Create S3 CRT client configuration
+    // Create S3 CRT client configuration for accelerated transfers
     Aws::S3Crt::ClientConfiguration config;
     nixl_s3_utils::configureClientCommon(config, custom_params);
     if (executor) config.executor = executor;
@@ -51,17 +51,17 @@ awsS3CrtClient::awsS3CrtClient(nixl_b_params_t *custom_params,
 }
 
 void
-awsS3CrtClient::setExecutor(std::shared_ptr<Aws::Utils::Threading::Executor> executor) {
-    throw std::runtime_error("awsS3CrtClient::setExecutor() not supported - "
+awsS3AccelClient::setExecutor(std::shared_ptr<Aws::Utils::Threading::Executor> executor) {
+    throw std::runtime_error("awsS3AccelClient::setExecutor() not supported - "
                              "AWS SDK doesn't allow changing executor after client creation");
 }
 
 void
-awsS3CrtClient::putObjectAsync(std::string_view key,
-                               uintptr_t data_ptr,
-                               size_t data_len,
-                               size_t offset,
-                               put_object_callback_t callback) {
+awsS3AccelClient::putObjectAsync(std::string_view key,
+                                 uintptr_t data_ptr,
+                                 size_t data_len,
+                                 size_t offset,
+                                 put_object_callback_t callback) {
     if (offset != 0) {
         callback(false);
         return;
@@ -84,7 +84,7 @@ awsS3CrtClient::putObjectAsync(std::string_view key,
             const Aws::S3Crt::Model::PutObjectOutcome &outcome,
             const std::shared_ptr<const Aws::Client::AsyncCallerContext> &) {
             if (!outcome.IsSuccess()) {
-                std::cerr << "putObjectAsync (CRT) error:" << outcome.GetError() << std::endl;
+                std::cerr << "putObjectAsync (Accel) error:" << outcome.GetError() << std::endl;
             }
             callback(outcome.IsSuccess());
         },
@@ -92,11 +92,11 @@ awsS3CrtClient::putObjectAsync(std::string_view key,
 }
 
 void
-awsS3CrtClient::getObjectAsync(std::string_view key,
-                               uintptr_t data_ptr,
-                               size_t data_len,
-                               size_t offset,
-                               get_object_callback_t callback) {
+awsS3AccelClient::getObjectAsync(std::string_view key,
+                                 uintptr_t data_ptr,
+                                 size_t data_len,
+                                 size_t offset,
+                                 get_object_callback_t callback) {
     auto preallocated_stream_buf = Aws::MakeShared<Aws::Utils::Stream::PreallocatedStreamBuf>(
         "GetObjectStreamBuf", reinterpret_cast<unsigned char *>(data_ptr), data_len);
     auto stream_factory = Aws::MakeShared<Aws::IOStreamFactory>(
@@ -122,7 +122,7 @@ awsS3CrtClient::getObjectAsync(std::string_view key,
 }
 
 bool
-awsS3CrtClient::checkObjectExists(std::string_view key) {
+awsS3AccelClient::checkObjectExists(std::string_view key) {
     Aws::S3Crt::Model::HeadObjectRequest request;
     request.WithBucket(bucketName_).WithKey(Aws::String(key));
 
@@ -132,6 +132,6 @@ awsS3CrtClient::checkObjectExists(std::string_view key) {
     else if (outcome.GetError().GetResponseCode() == Aws::Http::HttpResponseCode::NOT_FOUND)
         return false;
     else
-        throw std::runtime_error("Failed to check if object exists (CRT): " +
+        throw std::runtime_error("Failed to check if object exists (Accel): " +
                                  outcome.GetError().GetMessage());
 }
