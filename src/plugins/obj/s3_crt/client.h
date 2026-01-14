@@ -33,7 +33,7 @@
  * The S3 CRT (Common Runtime) client uses AWS Common Runtime for improved performance with
  * large objects, providing better throughput and lower CPU utilization.
  */
-class awsS3CrtClient: public iS3Client {
+class awsS3CrtClient : public iS3Client {
 public:
     /**
      * Constructor that creates an AWS S3CrtClient from custom parameters.

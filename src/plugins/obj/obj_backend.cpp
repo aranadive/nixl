@@ -270,12 +270,14 @@ nixlObjEngine::postXfer(const nixl_xfer_op_t &operation,
         };
 
         // Select the appropriate client based on data size threshold
-        iS3Client* client = use_crt ? s3CrtClient_.get() : s3Client_.get();
+        iS3Client *client = use_crt ? s3CrtClient_.get() : s3Client_.get();
 
         if (operation == NIXL_WRITE)
-            client->putObjectAsync(obj_key_search->second, data_ptr, data_len, offset, status_callback);
+            client->putObjectAsync(
+                obj_key_search->second, data_ptr, data_len, offset, status_callback);
         else
-            client->getObjectAsync(obj_key_search->second, data_ptr, data_len, offset, status_callback);
+            client->getObjectAsync(
+                obj_key_search->second, data_ptr, data_len, offset, status_callback);
     }
 
     return NIXL_IN_PROG;

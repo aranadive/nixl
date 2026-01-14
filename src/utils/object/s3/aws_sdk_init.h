@@ -29,17 +29,18 @@ namespace nixl_s3_utils {
  * This function uses std::call_once to ensure that Aws::InitAPI is called
  * exactly once, even in multi-threaded environments or when multiple S3 clients
  * are created.
- * 
+ *
  * The AWS SDK is automatically shut down at program exit via std::atexit.
  */
-inline void initAWSSDK() {
+inline void
+initAWSSDK() {
     static std::once_flag aws_init_flag;
-    static Aws::SDKOptions* aws_options = nullptr;
+    static Aws::SDKOptions *aws_options = nullptr;
 
     std::call_once(aws_init_flag, []() {
         aws_options = new Aws::SDKOptions();
         Aws::InitAPI(*aws_options);
-        
+
         // Register cleanup at program exit
         std::atexit([]() {
             Aws::ShutdownAPI(*aws_options);

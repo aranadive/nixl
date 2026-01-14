@@ -87,7 +87,8 @@ awsS3CrtClient::putObjectAsync(std::string_view key,
             const Aws::S3Crt::Model::PutObjectOutcome &outcome,
             const std::shared_ptr<const Aws::Client::AsyncCallerContext> &) {
             if (!outcome.IsSuccess()) {
-                NIXL_ERROR << absl::StrFormat("putObjectAsync (CRT) error: %s", outcome.GetError().GetMessage());
+                NIXL_ERROR << absl::StrFormat("putObjectAsync (CRT) error: %s",
+                                              outcome.GetError().GetMessage());
             }
             callback(outcome.IsSuccess());
         },
