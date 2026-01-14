@@ -137,14 +137,29 @@ public:
 nixlObjEngine::nixlObjEngine(const nixlBackendInitParams *init_params)
     : nixlBackendEngine(init_params),
       executor_(std::make_shared<asioThreadPoolExecutor>(getNumThreads(init_params->customParams))),
-      s3Client_(std::make_shared<awsS3Client>(init_params->customParams, executor_)),
-      s3CrtClient_(std::make_shared<awsS3CrtClient>(init_params->customParams, executor_)),
       crtMinLimit_(getCrtMinLimit(init_params->customParams)) {
-    NIXL_INFO << "Object storage backend initialized with dual S3 clients";
-    if (crtMinLimit_ < std::numeric_limits<size_t>::max()) {
+
+    // Client creation strategy based on crtMinLimit:
+    // - crtMinLimit == 0: Only standard S3 client (CRT disabled)
+    // - crtMinLimit == 1: Only CRT client (all transfers use CRT)
+    // - Otherwise: Both clients for dynamic selection based on size
+    if (crtMinLimit_ == 0) {
+        s3Client_ = std::make_shared<awsS3Client>(init_params->customParams, executor_);
+        NIXL_INFO
+            << "Object storage backend initialized with S3 Standard client only (CRT disabled)";
+    } else if (crtMinLimit_ == 1) {
+        s3CrtClient_ = std::make_shared<awsS3CrtClient>(init_params->customParams, executor_);
+        NIXL_INFO << "Object storage backend initialized with S3 CRT client only";
+    } else if (crtMinLimit_ < std::numeric_limits<size_t>::max()) {
+        s3Client_ = std::make_shared<awsS3Client>(init_params->customParams, executor_);
+        s3CrtClient_ = std::make_shared<awsS3CrtClient>(init_params->customParams, executor_);
+        NIXL_INFO << "Object storage backend initialized with dual S3 clients";
         NIXL_INFO << "S3 CRT client enabled for objects >= " << crtMinLimit_ << " bytes";
-    } else {
-        NIXL_INFO << "S3 CRT client disabled (no crtMinLimit set)";
+    }
+
+    // Ensure at least one client was created
+    if (!s3Client_ && !s3CrtClient_) {
+        throw std::runtime_error("Failed to create any S3 client");
     }
 }
 
@@ -201,9 +216,12 @@ nixl_status_t
 nixlObjEngine::queryMem(const nixl_reg_dlist_t &descs, std::vector<nixl_query_resp_t> &resp) const {
     resp.reserve(descs.descCount());
 
+    // Use whichever client is available
+    iS3Client *client = s3Client_ ? s3Client_.get() : s3CrtClient_.get();
+
     try {
         for (auto &desc : descs)
-            resp.emplace_back(s3Client_->checkObjectExists(desc.metaInfo) ?
+            resp.emplace_back(client->checkObjectExists(desc.metaInfo) ?
                                   nixl_query_resp_t{nixl_b_params_t{}} :
                                   std::nullopt);
     }
@@ -258,7 +276,8 @@ nixlObjEngine::postXfer(const nixl_xfer_op_t &operation,
         size_t offset = remote_desc.addr;
 
         // Select client based on data size vs threshold
-        bool use_crt = (s3CrtClient_ && data_len >= crtMinLimit_) ? true : false;
+        // If only one client exists, use it regardless of size
+        bool use_crt = (s3CrtClient_ && (!s3Client_ || data_len >= crtMinLimit_));
 
         NIXL_DEBUG << "Transfer " << i << ": size=" << data_len << " bytes, using "
                    << (use_crt ? "S3 CRT" : "S3 Standard") << " client";
@@ -269,7 +288,7 @@ nixlObjEngine::postXfer(const nixl_xfer_op_t &operation,
             status_promise->set_value(success ? NIXL_SUCCESS : NIXL_ERR_BACKEND);
         };
 
-        // Select the appropriate client based on data size threshold
+        // Select the appropriate client (handle case where one may be null)
         iS3Client *client = use_crt ? s3CrtClient_.get() : s3Client_.get();
 
         if (operation == NIXL_WRITE)
