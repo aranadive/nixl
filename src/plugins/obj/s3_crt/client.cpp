@@ -24,6 +24,7 @@
 #include <aws/core/utils/memory/stl/AWSStringStream.h>
 #include <absl/strings/str_format.h>
 #include <iostream>
+#include "common/nixl_log.h"
 
 awsS3CrtClient::awsS3CrtClient(nixl_b_params_t *custom_params,
                                std::shared_ptr<Aws::Utils::Threading::Executor> executor)
@@ -93,7 +94,7 @@ awsS3CrtClient::putObjectAsync(std::string_view key,
             const Aws::S3Crt::Model::PutObjectOutcome &outcome,
             const std::shared_ptr<const Aws::Client::AsyncCallerContext> &) {
             if (!outcome.IsSuccess()) {
-                std::cerr << "putObjectAsync (CRT) error:" << outcome.GetError() << std::endl;
+                NIXL_ERROR << absl::StrFormat("putObjectAsync (CRT) error: %s", outcome.GetError().GetMessage());
             }
             callback(outcome.IsSuccess());
         },

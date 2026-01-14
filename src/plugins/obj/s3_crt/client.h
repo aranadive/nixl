@@ -26,17 +26,14 @@
 #include <aws/core/utils/memory/stl/AWSString.h>
 #include <aws/core/Aws.h>
 #include "nixl_types.h"
-
-// Forward declaration from s3/client.h
-using put_object_callback_t = std::function<void(bool success)>;
-using get_object_callback_t = std::function<void(bool success)>;
+#include "s3/client.h"
 
 /**
  * Concrete implementation using AWS SDK S3CrtClient for high-performance transfers.
  * The S3 CRT (Common Runtime) client uses AWS Common Runtime for improved performance with
  * large objects, providing better throughput and lower CPU utilization.
  */
-class awsS3CrtClient {
+class awsS3CrtClient: public iS3Client {
 public:
     /**
      * Constructor that creates an AWS S3CrtClient from custom parameters.

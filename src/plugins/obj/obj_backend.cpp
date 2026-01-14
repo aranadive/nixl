@@ -258,52 +258,24 @@ nixlObjEngine::postXfer(const nixl_xfer_op_t &operation,
         size_t offset = remote_desc.addr;
 
         // Select client based on data size vs threshold
-        bool use_crt = (s3CrtClient_ && data_len >= crtMinLimit_);
+        bool use_crt = (s3CrtClient_ && data_len >= crtMinLimit_) ? true : false;
 
         NIXL_DEBUG << "Transfer " << i << ": size=" << data_len << " bytes, using "
                    << (use_crt ? "S3 CRT" : "S3 Standard") << " client";
 
         // S3 client interface signals completion via a callback, but NIXL API polls request handle
         // for the status code. Use future/promise pair to bridge the gap.
-        if (operation == NIXL_WRITE) {
-            if (use_crt)
-                s3CrtClient_->putObjectAsync(obj_key_search->second,
-                                             data_ptr,
-                                             data_len,
-                                             offset,
-                                             [status_promise](bool success) {
-                                                 status_promise->set_value(
-                                                     success ? NIXL_SUCCESS : NIXL_ERR_BACKEND);
-                                             });
-            else
-                s3Client_->putObjectAsync(obj_key_search->second,
-                                          data_ptr,
-                                          data_len,
-                                          offset,
-                                          [status_promise](bool success) {
-                                              status_promise->set_value(success ? NIXL_SUCCESS :
-                                                                                  NIXL_ERR_BACKEND);
-                                          });
-        } else {
-            if (use_crt)
-                s3CrtClient_->getObjectAsync(obj_key_search->second,
-                                             data_ptr,
-                                             data_len,
-                                             offset,
-                                             [status_promise](bool success) {
-                                                 status_promise->set_value(
-                                                     success ? NIXL_SUCCESS : NIXL_ERR_BACKEND);
-                                             });
-            else
-                s3Client_->getObjectAsync(obj_key_search->second,
-                                          data_ptr,
-                                          data_len,
-                                          offset,
-                                          [status_promise](bool success) {
-                                              status_promise->set_value(success ? NIXL_SUCCESS :
-                                                                                  NIXL_ERR_BACKEND);
-                                          });
-        }
+        auto status_callback = [status_promise](bool success) {
+            status_promise->set_value(success ? NIXL_SUCCESS : NIXL_ERR_BACKEND);
+        };
+
+        // Select the appropriate client based on data size threshold
+        iS3Client* client = use_crt ? s3CrtClient_.get() : s3Client_.get();
+
+        if (operation == NIXL_WRITE)
+            client->putObjectAsync(obj_key_search->second, data_ptr, data_len, offset, status_callback);
+        else
+            client->getObjectAsync(obj_key_search->second, data_ptr, data_len, offset, status_callback);
     }
 
     return NIXL_IN_PROG;
