@@ -33,9 +33,10 @@ namespace gtest::plugins::obj {
  * used during the tests.
  */
 
-nixl_b_params_t obj_params;
+nixl_b_params_t obj_params = {{"crtMinLimit", "0"}};
 nixl_b_params_t obj_crt_params = {{"crtMinLimit", "1024"}};
 const std::string local_agent_name = "Agent1";
+const std::string crt_agent_name = "Agent2-CRT";
 const nixlBackendInitParams obj_test_params = {.localAgent = local_agent_name,
                                                .type = "OBJ",
                                                .customParams = &obj_params,
@@ -43,7 +44,7 @@ const nixlBackendInitParams obj_test_params = {.localAgent = local_agent_name,
                                                .pthrDelay = 0,
                                                .syncMode = nixl_thread_sync_t::NIXL_THREAD_SYNC_RW};
 
-const nixlBackendInitParams obj_crt_test_params = {.localAgent = local_agent_name,
+const nixlBackendInitParams obj_crt_test_params = {.localAgent = crt_agent_name,
                                                    .type = "OBJ",
                                                    .customParams = &obj_crt_params,
                                                    .enableProgTh = false,

@@ -40,7 +40,7 @@ getNumThreads(nixl_b_params_t *custom_params) {
 
 size_t
 getCrtMinLimit(nixl_b_params_t *custom_params) {
-    if (!custom_params) return std::numeric_limits<size_t>::max();
+    if (!custom_params) return 0;
 
     auto it = custom_params->find("crtMinLimit");
     if (it != custom_params->end()) {
@@ -50,10 +50,10 @@ getCrtMinLimit(nixl_b_params_t *custom_params) {
         catch (const std::exception &e) {
             NIXL_WARN << "Invalid crtMinLimit value: " << it->second
                       << ", using default (CRT disabled)";
-            return std::numeric_limits<size_t>::max();
+            return 0;
         }
     }
-    return std::numeric_limits<size_t>::max(); // Disabled by default
+    return 0; // Disabled by default
 }
 
 bool
