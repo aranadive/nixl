@@ -64,7 +64,6 @@ public:
     checkObjectExists(std::string_view key);
 
 private:
-    std::unique_ptr<Aws::SDKOptions, std::function<void(Aws::SDKOptions *)>> awsOptions_;
     std::unique_ptr<Aws::S3Crt::S3CrtClient> s3CrtClient_;
     Aws::String bucketName_;
 };

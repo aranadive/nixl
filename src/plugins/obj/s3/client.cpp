@@ -17,6 +17,7 @@
 
 #include "client.h"
 #include "object/s3/utils.h"
+#include "object/s3/aws_sdk_init.h"
 #include <aws/s3/model/PutObjectRequest.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/HeadObjectRequest.h>
@@ -25,17 +26,9 @@
 #include <absl/strings/str_format.h>
 
 awsS3Client::awsS3Client(nixl_b_params_t *custom_params,
-                         std::shared_ptr<Aws::Utils::Threading::Executor> executor)
-    : awsOptions_(
-          []() {
-              auto *opts = new Aws::SDKOptions();
-              Aws::InitAPI(*opts);
-              return opts;
-          }(),
-          [](Aws::SDKOptions *opts) {
-              Aws::ShutdownAPI(*opts);
-              delete opts;
-          }) {
+                         std::shared_ptr<Aws::Utils::Threading::Executor> executor) {
+    // Initialize AWS SDK (thread-safe, only happens once)
+    nixl_s3_utils::initAWSSDK();
 
     Aws::Client::ClientConfiguration config;
     nixl_s3_utils::configureClientCommon(config, custom_params);
