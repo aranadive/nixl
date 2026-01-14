@@ -26,7 +26,7 @@
 #include <aws/core/utils/memory/stl/AWSString.h>
 #include <aws/core/Aws.h>
 #include "nixl_types.h"
-#include "s3/client.h"
+#include "obj_backend.h"
 
 /**
  * Concrete implementation using AWS SDK S3CrtClient for high-performance transfers.

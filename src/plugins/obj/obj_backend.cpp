@@ -16,6 +16,7 @@
  */
 
 #include "obj_backend.h"
+#include "s3/client.h"
 #include "s3_crt/client.h"
 #include "common/nixl_log.h"
 #include "nixl_types.h"
@@ -148,17 +149,17 @@ nixlObjEngine::nixlObjEngine(const nixlBackendInitParams *init_params)
         NIXL_INFO
             << "Object storage backend initialized with S3 Standard client only (CRT disabled)";
     } else if (crtMinLimit_ == 1) {
-        s3CrtClient_ = std::make_shared<awsS3CrtClient>(init_params->customParams, executor_);
+        s3ClientCrt_ = std::make_shared<awsS3CrtClient>(init_params->customParams, executor_);
         NIXL_INFO << "Object storage backend initialized with S3 CRT client only";
     } else if (crtMinLimit_ < std::numeric_limits<size_t>::max()) {
         s3Client_ = std::make_shared<awsS3Client>(init_params->customParams, executor_);
-        s3CrtClient_ = std::make_shared<awsS3CrtClient>(init_params->customParams, executor_);
+        s3ClientCrt_ = std::make_shared<awsS3CrtClient>(init_params->customParams, executor_);
         NIXL_INFO << "Object storage backend initialized with dual S3 clients";
         NIXL_INFO << "S3 CRT client enabled for objects >= " << crtMinLimit_ << " bytes";
     }
 
     // Ensure at least one client was created
-    if (!s3Client_ && !s3CrtClient_) {
+    if (!s3Client_ && !s3ClientCrt_) {
         throw std::runtime_error("Failed to create any S3 client");
     }
 }
@@ -166,14 +167,14 @@ nixlObjEngine::nixlObjEngine(const nixlBackendInitParams *init_params)
 // Used for testing to inject mock S3 client dependencies
 nixlObjEngine::nixlObjEngine(const nixlBackendInitParams *init_params,
                              std::shared_ptr<iS3Client> s3_client,
-                             std::shared_ptr<awsS3CrtClient> s3_crt_client)
+                             std::shared_ptr<iS3Client> s3_client_crt)
     : nixlBackendEngine(init_params),
       executor_(std::make_shared<asioThreadPoolExecutor>(std::thread::hardware_concurrency())),
       s3Client_(s3_client),
-      s3CrtClient_(s3_crt_client),
+      s3ClientCrt_(s3_client_crt),
       crtMinLimit_(getCrtMinLimit(init_params->customParams)) {
     if (s3Client_) s3Client_->setExecutor(executor_);
-    if (s3CrtClient_) s3CrtClient_->setExecutor(executor_);
+    if (s3ClientCrt_) s3ClientCrt_->setExecutor(executor_);
     NIXL_INFO << "Object storage backend initialized with injected S3 clients";
 }
 
@@ -217,7 +218,7 @@ nixlObjEngine::queryMem(const nixl_reg_dlist_t &descs, std::vector<nixl_query_re
     resp.reserve(descs.descCount());
 
     // Use whichever client is available
-    iS3Client *client = s3Client_ ? s3Client_.get() : s3CrtClient_.get();
+    iS3Client *client = s3Client_ ? s3Client_.get() : s3ClientCrt_.get();
 
     try {
         for (auto &desc : descs)
@@ -277,7 +278,7 @@ nixlObjEngine::postXfer(const nixl_xfer_op_t &operation,
 
         // Select client based on data size vs threshold
         // If only one client exists, use it regardless of size
-        bool use_crt = (s3CrtClient_ && (!s3Client_ || data_len >= crtMinLimit_));
+        bool use_crt = (s3ClientCrt_ && (!s3Client_ || data_len >= crtMinLimit_));
 
         NIXL_DEBUG << "Transfer " << i << ": size=" << data_len << " bytes, using "
                    << (use_crt ? "S3 CRT" : "S3 Standard") << " client";
@@ -289,7 +290,7 @@ nixlObjEngine::postXfer(const nixl_xfer_op_t &operation,
         };
 
         // Select the appropriate client (handle case where one may be null)
-        iS3Client *client = use_crt ? s3CrtClient_.get() : s3Client_.get();
+        iS3Client *client = use_crt ? s3ClientCrt_.get() : s3Client_.get();
 
         if (operation == NIXL_WRITE)
             client->putObjectAsync(

@@ -26,63 +26,7 @@
 #include <aws/core/utils/memory/stl/AWSString.h>
 #include <aws/core/Aws.h>
 #include "nixl_types.h"
-
-using put_object_callback_t = std::function<void(bool success)>;
-using get_object_callback_t = std::function<void(bool success)>;
-
-/**
- * Abstract interface for S3 client operations.
- * Provides async operations for PutObject and GetObject.
- */
-class iS3Client {
-public:
-    virtual ~iS3Client() = default;
-
-    /**
-     * Set the executor for async operations.
-     * @param executor The executor to use for async operations
-     */
-    virtual void
-    setExecutor(std::shared_ptr<Aws::Utils::Threading::Executor> executor) = 0;
-
-    /**
-     * Asynchronously put an object to S3.
-     * @param key The object key
-     * @param data_ptr Pointer to the data to upload
-     * @param data_len Length of the data in bytes
-     * @param offset Offset within the object
-     * @param callback Callback function to handle the result
-     */
-    virtual void
-    putObjectAsync(std::string_view key,
-                   uintptr_t data_ptr,
-                   size_t data_len,
-                   size_t offset,
-                   put_object_callback_t callback) = 0;
-
-    /**
-     * Asynchronously get an object from S3.
-     * @param key The object key
-     * @param data_ptr Pointer to the buffer to store the downloaded data
-     * @param data_len Maximum length of data to read
-     * @param offset Offset within the object to start reading from
-     * @param callback Callback function to handle the result
-     */
-    virtual void
-    getObjectAsync(std::string_view key,
-                   uintptr_t data_ptr,
-                   size_t data_len,
-                   size_t offset,
-                   get_object_callback_t callback) = 0;
-
-    /**
-     * Check if the object exists.
-     * @param key The object key
-     * @return true if the object exists, false otherwise
-     */
-    virtual bool
-    checkObjectExists(std::string_view key) = 0;
-};
+#include "obj_backend.h"
 
 /**
  * Concrete implementation of IS3Client using AWS SDK S3Client.
