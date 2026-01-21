@@ -1504,12 +1504,12 @@ execDeviceTransfer(nixlAgent *agent,
         const nixlTime::us_t prepare_duration = timer.lap();
         thread_stats.prepare_duration.add(prepare_duration);
         std::string_view gpu_level =
-            *(xferBenchConfigGpuLevels.find(xferBenchConfig::gdaki_gpu_level));
+            *(xferBenchConfig::xferBenchConfigGpuLevels.find(xferBenchConfig::gdaki_gpu_level));
 
         // Launch appropriate GDAKI kernel based on configuration
         if (xferBenchConfig::gdaki_enable_partial_transfers &&
-            (gpu_level == xferBenchConfigGpuLevelThread ||
-             gpu_level == xferBenchConfigGpuLevelWarp)) {
+            (gpu_level == xferBenchConfig::xferBenchConfigGpuLevelThread ||
+             gpu_level == xferBenchConfig::xferBenchConfigGpuLevelWarp)) {
             // Use partial transfer kernel for thread/warp coordination
             {
                 deviceKernelParams params{num_iter,
@@ -1699,7 +1699,8 @@ xferBenchNixlWorker::transfer(size_t block_size,
 #if HAVE_NIXL_DEV_API
 void
 xferBenchNixlWorker::devicePoll(size_t block_size, unsigned int skip, unsigned int num_iter) {
-    std::string_view gpu_level = *(xferBenchConfigGpuLevels.find(xferBenchConfig::gdaki_gpu_level));
+    std::string_view gpu_level =
+        *(xferBenchConfig::xferBenchConfigGpuLevels.find(xferBenchConfig::gdaki_gpu_level));
     unsigned int total_iter = skip + num_iter;
 
     // GDAKI mode: Target monitors signal buffer instead of waiting for notifications

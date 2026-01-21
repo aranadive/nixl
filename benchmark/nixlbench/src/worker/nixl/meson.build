@@ -44,6 +44,29 @@ if cuda_available and have_nixl_gdaki
         '-I' + nixl_path + '/include',
       ]
 
+      cxxopts_inc = cxxopts_dep.get_variable(pkgconfig: 'includedir',
+                                             cmake: 'CMAKE_INSTALL_INCLUDEDIR',
+                                             default_value: '')
+      if cxxopts_inc != ''
+        nvcc_args += ['-I' + cxxopts_inc]
+      endif
+      cxxopts_subproj_inc = join_paths(meson.project_source_root(),
+                                       'subprojects', 'cxxopts-3.2.0', 'include')
+      if fs.exists(cxxopts_subproj_inc)
+        nvcc_args += ['-I' + cxxopts_subproj_inc]
+      endif
+      toml_inc = tomlplusplus_dep.get_variable(pkgconfig: 'includedir',
+                                               cmake: 'CMAKE_INSTALL_INCLUDEDIR',
+                                               default_value: '')
+      if toml_inc != ''
+        nvcc_args += ['-I' + toml_inc]
+      endif
+      toml_subproj_inc = join_paths(meson.project_source_root(),
+                                    'subprojects', 'tomlplusplus-3.4.0', 'include')
+      if fs.exists(toml_subproj_inc)
+        nvcc_args += ['-I' + toml_subproj_inc]
+      endif
+
       # Add UCX include path if ucxpath_inc option is provided
       ucxpath_inc = get_option('ucxpath_inc')
       if ucxpath_inc != ''

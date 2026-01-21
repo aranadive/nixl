@@ -413,25 +413,26 @@ xferBenchConfig::loadParams(cxxopts::ParseResult &result) {
 
         // Load GDAKI kernel configuration parameters
         if (enable_gdaki) {
-            gdaki_gpu_device_list = FLAGS_gdaki_gpu_device_list;
-            gdaki_threads_per_block = FLAGS_gdaki_threads_per_block;
-            gdaki_blocks_per_grid = FLAGS_gdaki_blocks_per_grid;
-            gdaki_enable_partial_transfers = FLAGS_gdaki_enable_partial_transfers;
+            gdaki_gpu_device_list = NB_ARG(gdaki_gpu_device_list);
+            gdaki_threads_per_block = NB_ARG(gdaki_threads_per_block);
+            gdaki_blocks_per_grid = NB_ARG(gdaki_blocks_per_grid);
+            gdaki_enable_partial_transfers = NB_ARG(gdaki_enable_partial_transfers);
 
             // Validate GDAKI configuration
-            if (xferBenchConfigGpuLevels.find(FLAGS_gdaki_gpu_level) ==
-                xferBenchConfigGpuLevels.end()) {
-                std::cerr << "Invalid GDAKI gpu level: " << FLAGS_gdaki_gpu_level
-                          << ". Must be: " << xferBenchConfigGpuLevelThread << ", "
-                          << xferBenchConfigGpuLevelWarp << " or " << xferBenchConfigGpuLevelBlock
-                          << std::endl;
+            if (xferBenchConfig::xferBenchConfigGpuLevels.find(NB_ARG(gdaki_gpu_level)) ==
+                xferBenchConfig::xferBenchConfigGpuLevels.end()) {
+                std::cerr << "Invalid GDAKI gpu level: " << NB_ARG(gdaki_gpu_level)
+                          << ". Must be: " << xferBenchConfig::xferBenchConfigGpuLevelThread << ", "
+                          << xferBenchConfig::xferBenchConfigGpuLevelWarp << " or "
+                          << xferBenchConfig::xferBenchConfigGpuLevelBlock << std::endl;
                 return -1;
             }
 
-            gdaki_gpu_level = FLAGS_gdaki_gpu_level;
+            gdaki_gpu_level = NB_ARG(gdaki_gpu_level);
 
             // Inform about gpu coordination level support
-            if (xferBenchConfigGpuLevelBlock != std::string_view(gdaki_gpu_level)) {
+            if (xferBenchConfig::xferBenchConfigGpuLevelBlock !=
+                std::string_view(gdaki_gpu_level)) {
                 if (gdaki_enable_partial_transfers) {
                     std::cout << "INFO: GDAKI GPU Coordination level '" << gdaki_gpu_level
                               << "' gpu coordination with partial transfers enabled." << std::endl;
@@ -440,7 +441,7 @@ xferBenchConfig::loadParams(cxxopts::ParseResult &result) {
                               << "' will fall back to 'block' coordination (enable partial "
                                  "transfers for full support)."
                               << std::endl;
-                    gdaki_gpu_level = xferBenchConfigGpuLevelBlock;
+                    gdaki_gpu_level = xferBenchConfig::xferBenchConfigGpuLevelBlock;
                 }
             }
 
@@ -458,7 +459,6 @@ xferBenchConfig::loadParams(cxxopts::ParseResult &result) {
                 return -1;
             }
         }
->>>>>>> 8f80061 (Add GDAKI test for nixlbench)
 
 #if defined(HAVE_CUDA) && !defined(HAVE_CUDA_FABRIC)
         if (enable_vmm) {

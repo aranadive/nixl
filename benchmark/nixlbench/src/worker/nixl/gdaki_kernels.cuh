@@ -9,7 +9,6 @@
 #include <iostream>
 #include <string_view>
 #include <memory>
-#include "utils/utils.h"
 #include <nixl_types.h>
 
 #define MAX_THREADS 1024

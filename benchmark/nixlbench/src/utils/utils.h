@@ -183,7 +183,7 @@ public:
     static std::string gusli_config_file;
     static uint64_t gusli_bdev_byte_offset;
     static std::string gusli_device_security;
-    tatic bool enable_gdaki;
+    static bool enable_gdaki;
     static std::string gdaki_gpu_device_list;
     static std::string gdaki_gpu_level;
     static size_t gdaki_threads_per_block;
@@ -201,16 +201,14 @@ public:
     (XFERBENCH_SCHEME_PAIRWISE == xferBenchConfig::scheme && \
      XFERBENCH_MODE_MG == xferBenchConfig::mode)
 
-    constexpr std::string_view xferBenchConfigGpuLevelThread{"thread"};
-    constexpr std::string_view xferBenchConfigGpuLevelWarp{"warp"};
-    constexpr std::string_view xferBenchConfigGpuLevelBlock{"block"};
+    constexpr static std::string_view xferBenchConfigGpuLevelThread{"thread"};
+    constexpr static std::string_view xferBenchConfigGpuLevelWarp{"warp"};
+    constexpr static std::string_view xferBenchConfigGpuLevelBlock{"block"};
 
-    namespace {
-        const std::unordered_set<std::string_view> xferBenchConfigGpuLevels{
-            xferBenchConfigGpuLevelThread,
-            xferBenchConfigGpuLevelWarp,
-            xferBenchConfigGpuLevelBlock};
-    }
+    inline static const std::unordered_set<std::string_view> xferBenchConfigGpuLevels{
+        xferBenchConfigGpuLevelThread,
+        xferBenchConfigGpuLevelWarp,
+        xferBenchConfigGpuLevelBlock};
 
     static int
     parseConfig(int argc, char *argv[]);

@@ -4,6 +4,7 @@
  */
 
 #include <gpu/ucx/nixl_device.cuh>
+#include "gdaki_levels.h"
 #include "gdaki_kernels.cuh"
 
 // Helper function to get request index based on coordination level (from gtest)
@@ -24,8 +25,12 @@ getRequestIndex() {
 
 static inline nixl_gpu_level_t
 stringToGpuLevel(std::string_view gdaki_level) {
-    if (gdaki_level == xferBenchConfigGpuLevelWarp) return nixl_gpu_level_t::WARP;
-    if (gdaki_level == xferBenchConfigGpuLevelBlock) return nixl_gpu_level_t::BLOCK;
+    if (gdaki_level == gdaki_levels::kWarp) {
+        return nixl_gpu_level_t::WARP;
+    }
+    if (gdaki_level == gdaki_levels::kBlock) {
+        return nixl_gpu_level_t::BLOCK;
+    }
     return nixl_gpu_level_t::THREAD;
 }
 
