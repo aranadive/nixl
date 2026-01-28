@@ -35,8 +35,9 @@
 
 // Local includes
 #include "common/nixl_time.h"
-#include "ucx/rkey.h"
-#include "ucx/ucx_utils.h"
+#include "mem_list.h"
+#include "rkey.h"
+#include "ucx_utils.h"
 
 enum ucx_cb_op_t { NOTIF_STR };
 
@@ -209,6 +210,18 @@ public:
     // public function for UCX worker to mark connections as connected
     nixl_status_t
     checkConn(const std::string &remote_agent);
+
+    nixl_status_t
+    prepMemoryView(const nixl_remote_meta_dlist_t &,
+                   nixlMemoryViewH &,
+                   const nixl_opt_b_args_t * = nullptr) const override;
+
+    nixl_status_t
+    prepMemoryView(const nixl_meta_dlist_t &,
+                   nixlMemoryViewH &,
+                   const nixl_opt_b_args_t * = nullptr) const override;
+
+    void releaseMemoryView(nixlMemoryViewH) const override;
 
 protected:
     const std::vector<std::unique_ptr<nixlUcxWorker>> &

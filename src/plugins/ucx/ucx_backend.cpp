@@ -19,7 +19,7 @@
 #include "common/nixl_log.h"
 #include "serdes/serdes.h"
 #include "common/nixl_log.h"
-#include "ucx/gpu_xfer_req_h.h"
+#include "gpu_xfer_req_h.h"
 
 #include <optional>
 #include <limits>
@@ -830,6 +830,7 @@ nixlUcxEngine::nixlUcxEngine(const nixlBackendInitParams &init_params)
 
     size_t num_workers = nixl_b_params_get(custom_params, "num_workers", 1);
     size_t num_threads = nixl_b_params_get(custom_params, "num_threads", 0);
+    size_t num_device_channels = nixl_b_params_get(custom_params, "ucx_num_device_channels", 4);
 
     if (num_workers <= num_threads) {
         /* There must be at least one shared worker */
@@ -849,8 +850,12 @@ nixlUcxEngine::nixlUcxEngine(const nixlBackendInitParams &init_params)
     const auto engine_config =
         (engine_config_it != custom_params->end()) ? engine_config_it->second : "";
 
-    uc = std::make_unique<nixlUcxContext>(
-        devs, init_params.enableProgTh, num_workers, init_params.syncMode, engine_config);
+    uc = std::make_unique<nixlUcxContext>(devs,
+                                          init_params.enableProgTh,
+                                          num_workers,
+                                          init_params.syncMode,
+                                          num_device_channels,
+                                          engine_config);
 
     for (size_t i = 0; i < num_workers; i++) {
         uws.emplace_back(std::make_unique<nixlUcxWorker>(*uc, err_handling_mode));
@@ -1561,4 +1566,67 @@ nixlUcxEngine::genNotif(const std::string &remote_agent, const std::string &msg)
         ret = NIXL_SUCCESS;
     }
     return ret;
+}
+
+nixl_status_t
+nixlUcxEngine::prepMemoryView(const nixl_remote_meta_dlist_t &meta_dlist,
+                              nixlMemoryViewH &mvh,
+                              const nixl_opt_b_args_t *opt_args) const {
+    const auto desc_count = static_cast<size_t>(meta_dlist.descCount());
+    std::vector<std::unique_ptr<nixl::ucx::remoteMem>> remote_mems;
+    const size_t worker_id = getWorkerId(opt_args);
+    remote_mems.reserve(desc_count);
+    for (size_t i = 0; i < desc_count; ++i) {
+        if (meta_dlist[i].remoteAgent == nixl_invalid_agent) {
+            remote_mems.emplace_back();
+            continue;
+        }
+
+        auto remoteMd = static_cast<const nixlUcxPublicMetadata *>(meta_dlist[i].metadataP);
+        if (!remoteMd || !remoteMd->conn) {
+            NIXL_ERROR << "No connection found in remote metadata";
+            return NIXL_ERR_NOT_FOUND;
+        }
+
+        remote_mems.emplace_back(new nixl::ucx::remoteMem{*remoteMd->conn->getEp(worker_id),
+                                                          static_cast<uint64_t>(meta_dlist[i].addr),
+                                                          remoteMd->getRkey(worker_id)});
+    }
+
+    try {
+        mvh = nixl::ucx::createMemList(remote_mems, *getWorker(worker_id));
+        return NIXL_SUCCESS;
+    }
+    catch (const std::exception &e) {
+        NIXL_ERROR << "Failed to prepare remote memory view: " << e.what();
+        return NIXL_ERR_BACKEND;
+    }
+}
+
+nixl_status_t
+nixlUcxEngine::prepMemoryView(const nixl_meta_dlist_t &meta_dlist,
+                              nixlMemoryViewH &mvh,
+                              const nixl_opt_b_args_t *opt_args) const {
+    std::vector<nixlUcxMem> local_mems;
+    const auto desc_count = static_cast<size_t>(meta_dlist.descCount());
+    local_mems.reserve(desc_count);
+    for (size_t i = 0; i < desc_count; ++i) {
+        auto localMd = static_cast<const nixlUcxPrivateMetadata *>(meta_dlist[i].metadataP);
+        local_mems.emplace_back(localMd->mem);
+    }
+
+    const size_t worker_id = getWorkerId(opt_args);
+    try {
+        mvh = nixl::ucx::createMemList(local_mems, *getWorker(worker_id));
+        return NIXL_SUCCESS;
+    }
+    catch (const std::exception &e) {
+        NIXL_ERROR << "Failed to prepare local memory view: " << e.what();
+        return NIXL_ERR_BACKEND;
+    }
+}
+
+void
+nixlUcxEngine::releaseMemoryView(nixlMemoryViewH mvh) const {
+    nixl::ucx::releaseMemList(mvh);
 }
