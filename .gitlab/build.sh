@@ -223,7 +223,7 @@ else
       cd ${TMPDIR} && \
       curl -sL https://aka.ms/InstallAzureCLIDeb | bash && \
       curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash && \
-      \. "$HOME/.nvm/nvm.sh" && \
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" && \
       nvm install 24 && \
       npm install -g azurite && \
 	  git clone --depth 1 https://github.com/Azure/azure-sdk-for-cpp.git --branch  azure-storage-blobs_12.15.0 && \
