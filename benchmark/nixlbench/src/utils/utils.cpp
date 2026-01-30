@@ -188,7 +188,8 @@ const std::vector<xferBenchParamInfo> xbench_params = {
         "0 means CRT client is disabled (default: 0)"),
     NB_ARG_BOOL(obj_accelerated_enable,
                 false,
-                "Enable S3 Accelerated client for GPU-direct transfers (requires cuobjclient library, default: false)"),
+                "Enable S3 Accelerated client for GPU-direct transfers (requires cuobjclient "
+                "library, default: false)"),
 
     // HF3FS options - only used when backend is HF3FS
     NB_ARG_INT32(hf3fs_iopool_size, 64, "Size of io memory pool"),
@@ -656,7 +657,8 @@ xferBenchConfig::printConfig() {
                             std::to_string(obj_crt_min_limit) + " (CRT enabled)" :
                             "0 (CRT disabled)");
             printOption("OBJ S3 Accelerated enable (--obj_accelerated_enable=[true|false])",
-                        obj_accelerated_enable ? "true (Accelerated enabled)" : "false (Accelerated disabled)");
+                        obj_accelerated_enable ? "true (Accelerated enabled)" :
+                                                 "false (Accelerated disabled)");
         }
 
         if (xferBenchConfig::isStorageBackend()) {
