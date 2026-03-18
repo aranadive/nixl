@@ -68,8 +68,10 @@ getNixlAwsLogLevel() {
  *
  * Log level mapping:
  *   AWS Fatal  ->  NIXL_ERROR  (not NIXL_FATAL: AWS-internal fatals must not abort the process)
- *   AWS Error  ->  NIXL_ERROR
- *   AWS Warn   ->  NIXL_WARN
+ *   AWS Error  ->  NIXL_ERROR  (most subjects)
+ *              ->  NIXL_DEBUG  (AWSXmlClient: logs all non-2xx HTTP responses incl. expected 404s)
+ *   AWS Warn   ->  NIXL_WARN   (most subjects)
+ *              ->  NIXL_DEBUG  (AWSClient: logs retry/clock-skew adjustments that succeed)
  *   AWS Info   ->  NIXL_INFO
  *   AWS Debug  ->  NIXL_DEBUG  (VLOG(1))
  *   AWS Trace  ->  NIXL_TRACE  (DVLOG(2), stripped in release builds)
@@ -126,11 +128,20 @@ private:
         case LogLevel::Fatal:
             NIXL_ERROR << "[AWS:" << normalizedTag << "] " << msg;
             break;
+        // AWSXmlClient logs all non-2xx HTTP responses including expected 404s (e.g.
+        // HeadObject for non-existent keys). Real failures are caught in client.cpp.
         case LogLevel::Error:
-            NIXL_ERROR << "[AWS:" << normalizedTag << "] " << msg;
+            if (std::string_view(normalizedTag) == "AWSXmlClient")
+                NIXL_DEBUG << "[AWS:" << normalizedTag << "] " << msg;
+            else
+                NIXL_ERROR << "[AWS:" << normalizedTag << "] " << msg;
             break;
+        // AWSClient logs automatic clock-skew corrections at Warn; the retry succeeds.
         case LogLevel::Warn:
-            NIXL_WARN << "[AWS:" << normalizedTag << "] " << msg;
+            if (std::string_view(normalizedTag) == "AWSClient")
+                NIXL_DEBUG << "[AWS:" << normalizedTag << "] " << msg;
+            else
+                NIXL_WARN << "[AWS:" << normalizedTag << "] " << msg;
             break;
         case LogLevel::Info:
             NIXL_INFO << "[AWS:" << normalizedTag << "] " << msg;
@@ -163,7 +174,8 @@ private:
  *
  * Log level mapping:
  *   CRT Fatal  ->  NIXL_ERROR  (not NIXL_FATAL: CRT-internal fatals must not abort the process)
- *   CRT Error  ->  NIXL_WARN   (CRT uses Error for recoverable conditions, e.g. credential probes)
+ *   CRT Error  ->  NIXL_WARN   (transport/TLS subjects, e.g. aws-c-s3, aws-c-http)
+ *              ->  NIXL_DEBUG  (AuthCredentialsProvider, common-io: expected probe failures)
  *   CRT Warn   ->  NIXL_WARN
  *   CRT Info   ->  NIXL_INFO
  *   CRT Debug  ->  NIXL_DEBUG  (VLOG(1))
@@ -210,10 +222,18 @@ private:
         case LogLevel::Fatal:
             NIXL_ERROR << "[CRT:" << tag << "] " << msg;
             break;
-        // Error -> WARN: CRT uses Error for recoverable conditions (e.g. credential file probes)
-        case LogLevel::Error:
-            NIXL_WARN << "[CRT:" << tag << "] " << msg;
+        // Error -> NIXL_DEBUG for credential-probe subjects (AuthCredentialsProvider, common-io):
+        //          these log at Error for expected probe failures in the provider chain.
+        //       -> NIXL_WARN for all other subjects (genuine transport/TLS errors).
+        case LogLevel::Error: {
+            const bool is_probe_subject = (std::string_view(tag) == "AuthCredentialsProvider" ||
+                                           std::string_view(tag) == "common-io");
+            if (is_probe_subject)
+                NIXL_DEBUG << "[CRT:" << tag << "] " << msg;
+            else
+                NIXL_WARN << "[CRT:" << tag << "] " << msg;
             break;
+        }
         case LogLevel::Warn:
             NIXL_WARN << "[CRT:" << tag << "] " << msg;
             break;
