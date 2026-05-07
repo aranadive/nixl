@@ -21,20 +21,44 @@ set -e
 set -x
 set -o pipefail
 
+# Format elapsed seconds as human-readable string.
+fmt_duration() {
+    local secs=$1
+    if [ "$secs" -ge 60 ]; then
+        printf "%dm %ds" $((secs / 60)) $((secs % 60))
+    else
+        printf "%ds" "$secs"
+    fi
+}
+
 # Suppress output on success, dump full log on failure.
+# Prints a clear stage banner with elapsed time.
 run_quiet() {
     local label="$1"; shift
-    local logfile
+    local logfile start_ts end_ts elapsed
     logfile=$(mktemp)
+    start_ts=$(date +%s)
     { set +x; } 2>/dev/null
-    echo "=== ${label} ==="
+    echo ""
+    echo "================================================================"
+    echo "  START: ${label}"
+    echo "================================================================"
     if "$@" > "$logfile" 2>&1; then
         rm -f "$logfile"
-        echo "=== ${label}: OK ==="
+        end_ts=$(date +%s)
+        elapsed=$((end_ts - start_ts))
+        echo "----------------------------------------------------------------"
+        echo "  OK: ${label}  [$(fmt_duration $elapsed)]"
+        echo "================================================================"
+        echo ""
         set -x
     else
         local rc=$?
-        echo "=== FAILED: ${label} (exit ${rc}) ==="
+        end_ts=$(date +%s)
+        elapsed=$((end_ts - start_ts))
+        echo "----------------------------------------------------------------"
+        echo "  FAILED: ${label}  (exit ${rc})  [$(fmt_duration $elapsed)]"
+        echo "================================================================"
         cat "$logfile"
         rm -f "$logfile"
         set -x
@@ -417,15 +441,47 @@ export UCX_TLS=^cuda_ipc
 if [ -n "$PRE_INSTALLED_NIXL_ENV" ]; then
     echo "PRE_INSTALLED_NIXL_ENV is set, skipping compilation"
 else
+    { set +x; } 2>/dev/null
+    echo ""
+    echo "================================================================"
+    echo "  START: Building NIXL"
+    echo "================================================================"
+    set -x
+    _nixl_start=$(date +%s)
+
     # shellcheck disable=SC2086
     meson setup ${NIXL_BUILD_DIR} --prefix=${INSTALL_DIR} -Ducx_path=${UCX_INSTALL_DIR} -Dbuild_docs=true -Drust=false ${EXTRA_BUILD_ARGS} -Dlibfabric_path="${LIBFABRIC_INSTALL_DIR}" --buildtype=debug
     ninja -j"$NPROC" -C ${NIXL_BUILD_DIR} && ninja -j"$NPROC" -C ${NIXL_BUILD_DIR} install
     mkdir -p dist && cp ${NIXL_BUILD_DIR}/src/bindings/python/nixl-meta/nixl-*.whl dist/
 
+    { set +x; } 2>/dev/null
+    _nixl_end=$(date +%s)
+    echo "----------------------------------------------------------------"
+    echo "  OK: Building NIXL  [$(fmt_duration $((_nixl_end - _nixl_start)))]"
+    echo "================================================================"
+    echo ""
+    set -x
+
     # TODO(kapila): Copy the nixl.pc file to the install directory if needed.
     # cp ${BUILD_DIR}/nixl.pc ${INSTALL_DIR}/lib/pkgconfig/nixl.pc
+
+    { set +x; } 2>/dev/null
+    echo ""
+    echo "================================================================"
+    echo "  START: Building nixlbench"
+    echo "================================================================"
+    set -x
+    _bench_start=$(date +%s)
 
     cd benchmark/nixlbench
     meson setup ${NIXLBENCH_BUILD_DIR} -Dnixl_path=${INSTALL_DIR} -Dprefix=${INSTALL_DIR}
     ninja -j"$NPROC" -C ${NIXLBENCH_BUILD_DIR} && ninja -j"$NPROC" -C ${NIXLBENCH_BUILD_DIR} install
+
+    { set +x; } 2>/dev/null
+    _bench_end=$(date +%s)
+    echo "----------------------------------------------------------------"
+    echo "  OK: Building nixlbench  [$(fmt_duration $((_bench_end - _bench_start)))]"
+    echo "================================================================"
+    echo ""
+    set -x
 fi
