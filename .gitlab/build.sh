@@ -217,11 +217,13 @@ else
     "
     # Re-source nvm for subsequent commands
     export NVM_DIR=${HOME}/.nvm
-    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    run_quiet "Sourcing nvm" bash -c "[ -s '${HOME}/.nvm/nvm.sh' ] && . '${HOME}/.nvm/nvm.sh'"
 
-    wget --tries=3 --waitretry=5 -O "${TMPDIR}/libfabric-${LIBFABRIC_VERSION#v}.tar.bz2" "https://github.com/ofiwg/libfabric/releases/download/${LIBFABRIC_VERSION}/libfabric-${LIBFABRIC_VERSION#v}.tar.bz2"
-    tar xjf "${TMPDIR}/libfabric-${LIBFABRIC_VERSION#v}.tar.bz2" -C ${TMPDIR}
-    rm "${TMPDIR}/libfabric-${LIBFABRIC_VERSION#v}.tar.bz2"
+    run_quiet "Downloading libfabric" bash -c "
+        wget --tries=3 --waitretry=5 -O '${TMPDIR}/libfabric-${LIBFABRIC_VERSION#v}.tar.bz2' 'https://github.com/ofiwg/libfabric/releases/download/${LIBFABRIC_VERSION}/libfabric-${LIBFABRIC_VERSION#v}.tar.bz2' &&
+        tar xjf '${TMPDIR}/libfabric-${LIBFABRIC_VERSION#v}.tar.bz2' -C ${TMPDIR} &&
+        rm '${TMPDIR}/libfabric-${LIBFABRIC_VERSION#v}.tar.bz2'
+    "
     run_quiet "Building libfabric" bash -c "
         cd ${TMPDIR}/libfabric-* &&
         ./autogen.sh &&
