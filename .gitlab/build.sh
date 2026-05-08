@@ -114,9 +114,12 @@ export PKG_CONFIG_PATH="${INSTALL_DIR}/lib/pkgconfig:${INSTALL_DIR}/lib64/pkgcon
 export NIXL_PLUGIN_DIR="${INSTALL_DIR}/lib/$ARCH-linux-gnu/plugins"
 export CMAKE_PREFIX_PATH="${INSTALL_DIR}:${CMAKE_PREFIX_PATH}"
 
+_build_total_start=$(date +%s)
+
 if [ -n "$PRE_INSTALLED_ENV" ]; then
     echo "PRE_INSTALLED_ENV is set, skipping package installation"
 else
+    _phase_start=$(date +%s)
     # Some docker images are with broken installations:
     $SUDO rm -rf /usr/lib/cmake/grpc /usr/lib/cmake/protobuf
 
@@ -391,11 +394,20 @@ else
         $SUDO cmake --install sdk/storage/azure-storage-blobs &&
         $SUDO cmake --install sdk/identity
     "
+    { set +x; } 2>/dev/null
+    _phase_end=$(date +%s)
+    echo ""
+    echo "################################################################"
+    echo "  PHASE COMPLETE: Dependencies  [$(fmt_duration $((_phase_end - _phase_start)))]"
+    echo "################################################################"
+    echo ""
+    set -x
 fi # PRE_INSTALLED_ENV end
 
 if [ -n "$PRE_INSTALLED_UCX_ENV" ]; then
     echo "PRE_INSTALLED_UCX_ENV is set, skipping UCX compilation"
 else
+    _phase_start=$(date +%s)
     if $HAS_GPU && test -d "$CUDA_HOME"; then
         run_quiet "Building UCCL" bash -c "
             cd ${TMPDIR} &&
@@ -430,6 +442,14 @@ else
         $SUDO make -j install-strip &&
         $SUDO ldconfig
     "
+    { set +x; } 2>/dev/null
+    _phase_end=$(date +%s)
+    echo ""
+    echo "################################################################"
+    echo "  PHASE COMPLETE: UCX/UCCL  [$(fmt_duration $((_phase_end - _phase_start)))]"
+    echo "################################################################"
+    echo ""
+    set -x
 fi # PRE_INSTALLED_UCX_ENV end
 
 $SUDO rm -rf ${TMPDIR}
@@ -441,6 +461,7 @@ export UCX_TLS=^cuda_ipc
 if [ -n "$PRE_INSTALLED_NIXL_ENV" ]; then
     echo "PRE_INSTALLED_NIXL_ENV is set, skipping compilation"
 else
+    _phase_start=$(date +%s)
     { set +x; } 2>/dev/null
     echo ""
     echo "================================================================"
@@ -483,5 +504,20 @@ else
     echo "  OK: Building nixlbench  [$(fmt_duration $((_bench_end - _bench_start)))]"
     echo "================================================================"
     echo ""
+
+    _phase_end=$(date +%s)
+    echo "################################################################"
+    echo "  PHASE COMPLETE: NIXL  [$(fmt_duration $((_phase_end - _phase_start)))]"
+    echo "################################################################"
+    echo ""
     set -x
 fi
+
+{ set +x; } 2>/dev/null
+_build_total_end=$(date +%s)
+echo ""
+echo "################################################################"
+echo "  TOTAL BUILD TIME: $(fmt_duration $((_build_total_end - _build_total_start)))"
+echo "################################################################"
+echo ""
+set -x
