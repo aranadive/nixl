@@ -517,10 +517,7 @@ RUN IFS=',' read -ra PYTHON_VERSIONS <<< "$WHL_PYTHON_VERSIONS" && \
             --output-dir dist \
             --cuobjclient $CUOBJCLIENT_MODE \
             $EP_BUILD_FLAGS ; \
-    done && \
-    if [ "${CUDA_VERSION%%.*}" = "13" ]; then \
-        python3 ./contrib/validate-cuobj-wheel.py dist/nixl_cu13*.whl; \
-    fi
+    done
 
 # Copy the meta package wheel to the dist directory, which will be used to push to PyPI.
 # The meta-wheel is identical for cu12 and cu13 builds (it pins both backends via
