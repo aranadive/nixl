@@ -21,6 +21,36 @@ endif
 
 infinia_lib_path = infinia_path + '/lib'
 infinia_inc_path = infinia_path + '/include'
+infinia_lib_file = 'red_async'
+infinia_lib_found = cc.find_library(infinia_lib_file, dirs: [infinia_lib_path], required: false)
+
+# Infinia SDK 2.5+ symbols required by this plugin.
+infinia_symbol_found = cpp.compiles('''
+    #include <red/red_async.hpp>
+    int main() {
+        (void)red_async::RED_ASYNC_DEFAULT_MAX_RETRIES;
+        (void)red_async::RED_ASYNC_DEFAULT_BATCH_SIZE;
+        (void)red_async::RED_ASYNC_OP_CACHE_HEAD;
+        (void)red_async::RED_ASYNC_OP_CACHE_GET;
+        (void)red_async::RED_ASYNC_OP_CACHE_PUT;
+        return 0;
+    }
+    ''',
+    args: ['-I' + infinia_inc_path],
+    name: 'Infinia SDK 2.5 symbols')
+
+infinia_sdk_ok = infinia_symbol_found and infinia_lib_found.found()
+if (not infinia_sdk_ok)
+    if not infinia_lib_found.found()
+        warning('INFINIA plugin requested but red_async library not found')
+    endif
+    if not infinia_symbol_found
+        warning('INFINIA plugin requested but Infinia SDK is too old: needs release 2.5.0 or above')
+    endif
+    warning('INFINIA plugin disabled')
+    subdir_done()
+endif
+
 infinia_dep = declare_dependency(
   link_args : ['-L' + infinia_lib_path,
                '-Wl,--push-state,--as-needed',
