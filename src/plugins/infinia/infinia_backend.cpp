@@ -1064,54 +1064,6 @@ infinia_engine::releaseReqH(nixlBackendReqH *handle) const {
     return NIXL_SUCCESS;
 }
 
-// Remote operation methods
-nixl_status_t
-infinia_engine::getPublicData(const nixlBackendMD *meta, std::string &str) const {
-    if (!initialized_) {
-        return NIXL_ERR_BACKEND;
-    }
-
-    // TODO: Serialize metadata for remote access
-    str = "infinia_metadata_placeholder";
-    return NIXL_SUCCESS;
-}
-
-nixl_status_t
-infinia_engine::getConnInfo(std::string &str) const {
-    if (!initialized_) {
-        return NIXL_ERR_BACKEND;
-    }
-
-    return NIXL_SUCCESS;
-}
-
-nixl_status_t
-infinia_engine::loadRemoteConnInfo(const std::string &remote_agent,
-                                   const std::string &remote_conn_info) {
-    if (!initialized_) {
-        return NIXL_ERR_BACKEND;
-    }
-
-    // TODO: Parse and store remote connection information
-    NIXL_DEBUG << "Ignoring remote connection info for " << remote_agent;
-    return NIXL_SUCCESS;
-}
-
-nixl_status_t
-infinia_engine::loadRemoteMD(const nixlBlobDesc &input,
-                             const nixl_mem_t &nixl_mem,
-                             const std::string &remote_agent,
-                             nixlBackendMD *&output) {
-    if (!initialized_) {
-        return NIXL_ERR_BACKEND;
-    }
-
-    // TODO: Create remote metadata object
-    NIXL_DEBUG << "Ignoring remote metadata for " << remote_agent;
-    output = nullptr;
-    return NIXL_SUCCESS;
-}
-
 // Local operation methods
 nixl_status_t
 infinia_engine::loadLocalMD(nixlBackendMD *input, nixlBackendMD *&output) {

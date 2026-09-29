@@ -187,23 +187,6 @@ public:
     [[nodiscard]] nixl_status_t
     releaseReqH(nixlBackendReqH *handle) const override;
 
-    // Remote operations (not currently supported)
-    [[nodiscard]] nixl_status_t
-    getPublicData(const nixlBackendMD *meta, std::string &str) const override;
-
-    [[nodiscard]] nixl_status_t
-    getConnInfo(std::string &str) const override;
-
-    [[nodiscard]] nixl_status_t
-    loadRemoteConnInfo(const std::string &remote_agent,
-                       const std::string &remote_conn_info) override;
-
-    [[nodiscard]] nixl_status_t
-    loadRemoteMD(const nixlBlobDesc &input,
-                 const nixl_mem_t &nixl_mem,
-                 const std::string &remote_agent,
-                 nixlBackendMD *&output) override;
-
     // Local operations (required since supportsLocal() returns true)
     [[nodiscard]] nixl_status_t
     loadLocalMD(nixlBackendMD *input, nixlBackendMD *&output) override;
