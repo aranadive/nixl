@@ -422,19 +422,10 @@ RUN rm -rf build && \
     ninja -j${NPROC:-$(nproc)} && \
     ninja install
 
-# Fail the build if cuObject acceleration did not make it into the plugin.
-RUN set -e; \
-    T="$(echo "$(readlink -f /usr/local/cuda)"/targets/*-linux)"; \
-    if ! ls "$T"/lib/libcuobjclient.so.1.* >/dev/null 2>&1; then \
-        echo "cuObject: no runtime in base, skipping OBJ plugin check"; \
-    else \
-        P="$(find "$NIXL_PREFIX" -name libplugin_OBJ.so -print -quit)"; \
-        test -n "$P" || { echo "ERROR: libplugin_OBJ.so not found" >&2; exit 1; }; \
-        readelf -d "$P" | grep -q libcuobjclient || { \
-            echo "ERROR: libplugin_OBJ.so is missing libcuobjclient; S3 acceleration is not compiled in" >&2; \
-            exit 1; }; \
-        echo "cuObject: libplugin_OBJ.so links libcuobjclient"; \
-    fi
+# Verify cuObject acceleration compiled into the OBJ plugin whenever the
+# build environment could plausibly have provided it (see the script for the
+# runtime/dev-package/link-status decision matrix).
+RUN /workspace/nixl/contrib/verify-cuobj-plugin.sh "$NIXL_PREFIX"
 
 RUN echo "$NIXL_PREFIX/lib/$ARCH-linux-gnu" > /etc/ld.so.conf.d/nixl.conf && \
     echo "$NIXL_PLUGIN_DIR" >> /etc/ld.so.conf.d/nixl.conf && \

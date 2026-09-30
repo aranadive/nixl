@@ -516,12 +516,15 @@ ENV NIXL_PLUGIN_DIR=/usr/local/nixl/lib64/plugins
 
 RUN echo "/usr/local/nixl/lib/$ARCH-linux-gnu" > /etc/ld.so.conf.d/nixl.conf && \
     echo "/usr/local/nixl/lib/$ARCH-linux-gnu/plugins" >> /etc/ld.so.conf.d/nixl.conf && \
-    ldconfig && \
-    if [ "${CUDA_VERSION%%.*}" = "13" ]; then \
-        OBJ_PLUGIN="$(find /usr/local/nixl -name libplugin_OBJ.so -print -quit)"; \
-        test -n "$OBJ_PLUGIN" || { echo "ERROR: libplugin_OBJ.so not found" >&2; exit 1; }; \
-        readelf -d "$OBJ_PLUGIN" | grep 'libcuobjclient'; \
-    fi
+    ldconfig
+
+# Verify cuObject acceleration compiled into the OBJ plugin whenever the
+# build environment could plausibly have provided it (see the script for the
+# runtime/dev-package/link-status decision matrix). Replaces the previous
+# CUDA_VERSION-major==13 gate, which couldn't distinguish "no cuobjclient in
+# this image at all" from "should be here and isn't" and had no runtime
+# presence check of its own.
+RUN /workspace/nixl/contrib/verify-cuobj-plugin.sh /usr/local/nixl
 
 # Create the wheel
 # No need to specifically add path to libcuda.so here, meson finds the stubs and links them
