@@ -8,6 +8,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -80,6 +81,76 @@ class SnapshotTests(unittest.TestCase):
 
 
 class ResultTests(unittest.TestCase):
+    def test_copyright_checks_earlier_branch_changes_in_both_snapshot_modes(self):
+        copyright_script = (
+            Path(__file__).resolve().parents[1] / ".github/workflows/copyright-check.sh"
+        ).read_text()
+        year = datetime.now(timezone.utc).year
+        header = (
+            f"# SPDX-FileCopyrightText: Copyright (c) {year} "
+            "NVIDIA CORPORATION & AFFILIATES. All rights reserved.\n"
+            "# SPDX-License-Identifier: Apache-2.0\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            root.mkdir()
+
+            def git(*args):
+                return (
+                    subprocess.check_output(
+                        ["git", *args], cwd=root, stderr=subprocess.DEVNULL
+                    )
+                    .decode()
+                    .strip()
+                )
+
+            git("init", "-b", "main")
+            git("config", "commit.gpgsign", "false")
+            git("config", "core.hooksPath", "/dev/null")
+            git("config", "user.name", "Test")
+            git("config", "user.email", "test@example.com")
+            script = root / ".github/workflows/copyright-check.sh"
+            script.parent.mkdir(parents=True)
+            script.write_text(copyright_script)
+            git("add", ".")
+            git("commit", "-qm", "Base")
+            base = git("rev-parse", "HEAD")
+            (root / "early.py").write_text("# Missing SPDX header\n")
+            git("add", ".")
+            git("commit", "-qm", "Earlier branch change")
+            (root / "latest.py").write_text(header)
+            git("add", ".")
+            git("commit", "-qm", "Latest branch change")
+            ref = git("rev-parse", "HEAD")
+            (root / "uncommitted.py").write_text(header)
+
+            for mode, target in [("working-tree", None), ("ref", ref)]:
+                with self.subTest(mode=mode):
+                    dest = Path(tmp) / mode
+                    checks.snapshot(root, dest, target)
+                    report = Path(tmp) / (mode + "-report")
+                    report.mkdir()
+                    runner = checks.Checks(report)
+                    real_run = runner.run
+
+                    def copyright_only(name, command, **kwargs):
+                        if name == "copyright":
+                            return real_run(name, command, **kwargs)
+                        return True
+
+                    old = os.getcwd()
+                    try:
+                        os.chdir(dest)
+                        with patch.object(runner, "run", side_effect=copyright_only):
+                            runner.lint(base)
+                    finally:
+                        os.chdir(old)
+                    result = next(
+                        r for r in runner.results if r["check"] == "copyright"
+                    )
+                    self.assertEqual(result["status"], "FAIL")
+                    self.assertIn("early.py", (report / "copyright.log").read_text())
+
     def test_missing_tool_and_silent_failure_never_pass(self):
         with tempfile.TemporaryDirectory() as tmp:
             runner = checks.Checks(Path(tmp))

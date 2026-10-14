@@ -28,9 +28,12 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
 RUN python3 -m venv /opt/checks && /opt/checks/bin/pip install --no-cache-dir \
     pre-commit==4.2.0 meson==1.7.2 pybind11==2.13.6 meson-python==0.18.0 \
     setuptools wheel
-ENV PATH="/opt/checks/bin:${PATH}"
+ENV PATH="/opt/checks/bin:/usr/lib/ccache:${PATH}"
 # Match .github/workflows/fern-check.yml (Node 22 and Fern 5.90.1).
 RUN npm install -g n@10.2.0 && n 22 && npm install -g fern-api@5.90.1
+# Ubuntu supplies gcc/g++ wrappers but omits the generic compiler aliases.
+RUN ln -s /usr/bin/ccache /usr/lib/ccache/cc && \
+    ln -s /usr/bin/ccache /usr/lib/ccache/c++
 ENV NIXL_CI_NON_GPU=1
 ENV CCACHE_DIR=/cache/ccache
 """
@@ -211,7 +214,7 @@ class Checks:
             )
         else:
             self.record("clang-format", "PASS", "no changed C/C++ files")
-        self.run("copyright", ["bash", ".github/workflows/copyright-check.sh"])
+        self.run("copyright", ["bash", ".github/workflows/copyright-check.sh", base])
         for directory in ["src", "test", "benchmark", "examples/python"]:
             self.run(
                 "prints-" + directory.replace("/", "-"),
